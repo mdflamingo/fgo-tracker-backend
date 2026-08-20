@@ -16,7 +16,7 @@ $$ language 'plpgsql';
 -- ==============================================================================
 
 CREATE TYPE task_status AS ENUM ('backlog', 'in_progress', 'review', 'done');
-CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high');
+CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high', 'critical');
 CREATE TYPE task_role AS ENUM ('creator', 'assignee', 'reviewer');
 CREATE TYPE project_role AS ENUM ('owner', 'member', 'viewer');
 CREATE TYPE attachment_type AS ENUM ('image', 'file', 'link');

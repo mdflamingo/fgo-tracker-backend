@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ErrSubscriptionNotFound = errors.New("subscription not found")
+	ErrTaskNotFound = errors.New("task not found")
 )
 
 type DBStorage struct {
@@ -149,23 +149,47 @@ func (d *DBStorage) Create(task model.TaskCreate, userTaskList []model.TaskUserC
 	return nil
 }
 
-func (d *DBStorage) GetOne(subscriprionID int) (model.Subscription, error) {
+func (d *DBStorage) GetOne(taskID uuid.UUID) (model.TaskResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	var subscription model.Subscription
+	var task model.TaskResponse
 
 	err := d.pool.QueryRow(ctx,
-		`SELECT service_name, price, user_id, start_date FROM subscriptions WHERE id = $1`,
-		subscriprionID).Scan(&subscription.ServiceName, &subscription.Price, &subscription.UserID, &subscription.StartDate)
+		`SELECT
+			t.id,
+			t.name,
+			t.description,
+			t.status,
+			t.priority,
+			t.deadline,
+			t.completed_at,
+			json_build_object('id', p.id, 'name', p.name) as project,
+			(
+				SELECT jsonb_build_object('id', u2.id, 'username', u2.username, 'email', u2.email)
+				FROM user_task ut2 JOIN "user" u2 ON ut2.user_id = u2.id
+				WHERE ut2.task_id = t.id AND ut2.role = 'creator'
+				LIMIT 1
+			) AS creator,
+			COALESCE(jsonb_agg(jsonb_build_object('id', u.id, 'username', u.username, 'email', u.email)) FILTER (WHERE u.id IS NOT NULL AND ut.role = 'reviewer'), '[]'::jsonb)
+			AS reviewers,
+			COALESCE(jsonb_agg(jsonb_build_object('id', u.id, 'username', u.username, 'email', u.email)) FILTER (WHERE u.id IS NOT NULL AND ut.role = 'assignee'), '[]'::jsonb)
+			AS assignees
+		FROM task t
+		LEFT JOIN project p ON t.project_id = p.id
+		LEFT JOIN user_task ut ON t.id = ut.task_id
+		LEFT JOIN "user" u ON ut.user_id = u.id
+		WHERE t.id = $1
+		GROUP BY t.id, t.name, t.description, t.status, t.priority, t.deadline, t.completed_at, p.id, p.name;`,
+		taskID).Scan(&task.Id, &task.Name, &task.Description, &task.Status, &task.Priority, &task.Deadline, &task.Completed, &task.Project, &task.Creator, &task.Reviewer, &task.Assigned)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return model.Subscription{}, ErrSubscriptionNotFound
+			return model.TaskResponse{}, ErrTaskNotFound
 		}
-		return model.Subscription{}, err
+		return model.TaskResponse{}, err
 	}
-	return subscription, nil
+	return task, nil
 }
 
 func (d *DBStorage) GetList() ([]model.Subscription, error) {

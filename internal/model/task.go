@@ -44,7 +44,21 @@ type TaskCreateRequest struct {
 }
 
 type TaskCreateResponse struct {
-	ID uuid.UUID `json:"id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"Created task ID" validate:"required"`
+	ID uuid.UUID `json:"id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"Created task ID"`
+}
+
+type TaskResponse struct {
+	Id          uuid.UUID    `json:"id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"task ID"`
+	Name        string       `json:"name" example:"Update user table" description:"Task name"`
+	Description string       `json:"description" example:"Some description" description:"Task description"`
+	Status      TaskStatus   `json:"status" example:"backlog" description:"Task status"`
+	Priority    TaskPriority `json:"priority" example:"medium" description:"Task priority"`
+	Project     ProjectDB    `json:"project" description:"Project"`
+	Creator     UserDB       `json:"creator" description:"User with role creator"`
+	Assigned    UserDB       `json:"assigned" description:"User with role assignee"`
+	Reviewer    UserDB       `json:"reviewer" description:"User with role reviewer"`
+	Deadline    time.Time    `json:"deadline" example:"2025-07-01T00:00:00Z" description:"Deadline date" validate:"required"`
+	Completed   time.Time    `json:"completed" example:"2025-07-01T00:00:00Z" description:"Completed date" validate:"required"`
 }
 
 // / DB models ///
@@ -63,4 +77,25 @@ type TaskUserCreate struct {
 	UserId    uuid.UUID
 	ProjectId uuid.UUID
 	Role      TaskRole
+}
+
+type TaskDB struct {
+	Id          uuid.UUID
+	Name        string
+	Description string
+	Status      TaskStatus
+	Priority    TaskPriority
+	ProjectId   uuid.UUID
+	Deadline    time.Time
+}
+
+type UserDB struct {
+	Id       uuid.UUID
+	Username string
+	Email    string
+}
+
+type ProjectDB struct {
+	Id   uuid.UUID
+	Name string
 }

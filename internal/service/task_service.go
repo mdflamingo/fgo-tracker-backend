@@ -3,9 +3,9 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -32,63 +32,63 @@ func NewTaskService(repo *repository.DBStorage) *TaskService {
 // @Failure 204 {string} string "Нет содержимого (список подписок пуст)"
 // @Failure 500 {string} string "Внутренняя ошибка сервера"
 // @Router /api/subscription/list [get]
-func (s *TaskService) GetList(w http.ResponseWriter, r *http.Request) {
-	subscriptions, err := s.repo.GetList()
-	if err != nil {
-		logger.Log.Error("failed to get subscriptions", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
+// func (s *TaskService) GetList(w http.ResponseWriter, r *http.Request) {
+// 	subscriptions, err := s.repo.GetList()
+// 	if err != nil {
+// 		logger.Log.Error("failed to get subscriptions", zap.Error(err))
+// 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 		return
+// 	}
 
-	if len(subscriptions) == 0 {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
+// 	if len(subscriptions) == 0 {
+// 		w.Header().Set("Content-Type", "application/json")
+// 		w.WriteHeader(http.StatusNoContent)
+// 		return
+// 	}
 
-	respJSON, err := json.Marshal(subscriptions)
-	if err != nil {
-		logger.Log.Error("failed to marshal response to JSON", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
+// 	respJSON, err := json.Marshal(subscriptions)
+// 	if err != nil {
+// 		logger.Log.Error("failed to marshal response to JSON", zap.Error(err))
+// 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 		return
+// 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(respJSON)
-}
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.WriteHeader(http.StatusOK)
+// 	w.Write(respJSON)
+// }
 
-// @Summary Получение подписки по ID
-// @Description Возвращает информацию о конкретной подписке
-// @Tags Subscriptions
+// @Summary Get task by ID
+// @Description Returns information about a specific task
+// @Tags Tasks
 // @Produce json
-// @Param id path int true "ID подписки" minimum(1)
-// @Success 200 {object} model.Subscription "Успешный ответ с информацией о подписке"
-// @Failure 204 {string} string "Подписка не найдена"
-// @Failure 400 {string} string "Неверный ID подписки"
-// @Failure 500 {string} string "Внутренняя ошибка сервера"
-// @Router /api/subscription/{id} [get]
+// @Param id path string true "Task UUID"
+// @Success 200 {object} model.TaskResponse "Task found"
+// @Failure 400 {string} string "Invalid task ID"
+// @Failure 404 {string} string "Task not found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/task/{id} [get]
 func (s *TaskService) GetTask(w http.ResponseWriter, r *http.Request) {
-	subscriptionID, err := parseTaskID(r)
+	taskID, err := parseTaskID(r)
 	if err != nil {
-		logger.Log.Warn("invalid subscription ID", zap.Error(err))
+		logger.Log.Warn("invalid task ID", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	subscription, err := s.repo.GetOne(subscriptionID)
+	task, err := s.repo.GetOne(taskID)
 	if err != nil {
-		if errors.Is(err, repository.ErrSubscriptionNotFound) {
-			logger.Log.Error("subscription not found", zap.Error(err))
-			w.WriteHeader(http.StatusNoContent)
+		if errors.Is(err, repository.ErrTaskNotFound) {
+			logger.Log.Error("task not found", zap.Error(err))
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		logger.Log.Error("failed to get subscription", zap.Error(err))
+		logger.Log.Error("failed to get task", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	respJSON, err := json.Marshal(subscription)
+	respJSON, err := json.Marshal(task)
 	if err != nil {
 		logger.Log.Error("failed to marshal response to JSON", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -112,52 +112,52 @@ func (s *TaskService) GetTask(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {string} string "Неверный запрос"
 // @Failure 500 {string} string "Внутренняя ошибка сервера"
 // @Router /api/subscription/{id} [put]
-func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		logger.Log.Error("failed to read request body", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
+// func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
+// 	body, err := io.ReadAll(r.Body)
+// 	if err != nil {
+// 		logger.Log.Error("failed to read request body", zap.Error(err))
+// 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+// 		return
+// 	}
 
-	var updateSubscription model.Subscription
-	if err := json.Unmarshal(body, &updateSubscription); err != nil {
-		logger.Log.Warn("invalid request body", zap.Error(err))
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
+// 	var updateSubscription model.Subscription
+// 	if err := json.Unmarshal(body, &updateSubscription); err != nil {
+// 		logger.Log.Warn("invalid request body", zap.Error(err))
+// 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+// 		return
+// 	}
 
-	subscriptionID, err := parseTaskID(r)
-	if err != nil {
-		logger.Log.Warn("invalid subscription ID", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+// 	subscriptionID, err := parseTaskID(r)
+// 	if err != nil {
+// 		logger.Log.Warn("invalid subscription ID", zap.Error(err))
+// 		http.Error(w, err.Error(), http.StatusBadRequest)
+// 		return
+// 	}
 
-	err = s.repo.Update(subscriptionID, updateSubscription)
-	if err != nil {
-		if errors.Is(err, repository.ErrSubscriptionNotFound) {
-			logger.Log.Error("subscription not found", zap.Error(err))
-			http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
-			return
-		} else {
-			logger.Log.Error("failed to update subscription", zap.Error(err))
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-	}
+// 	err = s.repo.Update(subscriptionID, updateSubscription)
+// 	if err != nil {
+// 		if errors.Is(err, repository.ErrSubscriptionNotFound) {
+// 			logger.Log.Error("subscription not found", zap.Error(err))
+// 			http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
+// 			return
+// 		} else {
+// 			logger.Log.Error("failed to update subscription", zap.Error(err))
+// 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 			return
+// 		}
+// 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-}
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.WriteHeader(http.StatusOK)
+// }
 
 // @Summary Create new task
-// @Description
+// @Description Creates a new task with optional assignee and reviewer
 // @Tags Tasks
 // @Accept json
 // @Produce json
-// @Param request body model.TaskCreateRequest true ""
-// @Success 201 {object} model.TaskCreateResponse ""
+// @Param request body model.TaskCreateRequest true "Task data"
+// @Success 201 {object} model.TaskCreateResponse "Created task ID"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/task [post]
@@ -254,41 +254,42 @@ func (s *TaskService) CreateTask(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {string} string ""
 // @Failure 500 {string} string ""
 // @Router /api/subscription/{id} [delete]
-func (s *TaskService) DeleteTask(w http.ResponseWriter, r *http.Request) {
-	subscriptionID, err := parseTaskID(r)
-	if err != nil {
-		logger.Log.Warn("invalid subscription ID", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+// func (s *TaskService) DeleteTask(w http.ResponseWriter, r *http.Request) {
+// 	subscriptionID, err := parseTaskID(r)
+// 	if err != nil {
+// 		logger.Log.Warn("invalid subscription ID", zap.Error(err))
+// 		http.Error(w, err.Error(), http.StatusBadRequest)
+// 		return
+// 	}
 
-	err = s.repo.Delete(subscriptionID)
-	if err != nil {
-		if errors.Is(err, repository.ErrSubscriptionNotFound) {
-			logger.Log.Error("subscription not found", zap.Error(err))
-			http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
-			return
-		} else {
-			logger.Log.Error("failed to delete subscription", zap.Error(err))
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-	}
+// 	err = s.repo.Delete(subscriptionID)
+// 	if err != nil {
+// 		if errors.Is(err, repository.ErrSubscriptionNotFound) {
+// 			logger.Log.Error("subscription not found", zap.Error(err))
+// 			http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
+// 			return
+// 		} else {
+// 			logger.Log.Error("failed to delete subscription", zap.Error(err))
+// 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 			return
+// 		}
+// 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-}
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.WriteHeader(http.StatusOK)
+// }
 
-func parseTaskID(r *http.Request) (int, error) {
+func parseTaskID(r *http.Request) (uuid.UUID, error) {
 	idStr := chi.URLParam(r, "id")
 	if idStr == "" {
-		return 0, errors.New("subscription ID is required")
+		return uuid.Nil, errors.New("task ID is required")
 	}
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id <= 0 {
-		return 0, errors.New("invalid subscription ID")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid task ID: %w", err)
 	}
+
 	return id, nil
 }
 

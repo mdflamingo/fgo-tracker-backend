@@ -153,129 +153,202 @@ func (d *DBStorage) GetOne(taskID uuid.UUID) (model.TaskResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	var task model.TaskResponse
-
-	err := d.pool.QueryRow(ctx,
+	rows, err := d.pool.Query(ctx,
 		`SELECT
-			t.id,
-			t.name,
-			t.description,
-			t.status,
-			t.priority,
-			t.deadline,
-			t.completed_at,
-			json_build_object('id', p.id, 'name', p.name) as project,
-			(
-				SELECT jsonb_build_object('id', u2.id, 'username', u2.username, 'email', u2.email)
-				FROM user_task ut2 JOIN "user" u2 ON ut2.user_id = u2.id
-				WHERE ut2.task_id = t.id AND ut2.role = 'creator'
-				LIMIT 1
-			) AS creator,
-			COALESCE(jsonb_agg(jsonb_build_object('id', u.id, 'username', u.username, 'email', u.email)) FILTER (WHERE u.id IS NOT NULL AND ut.role = 'reviewer'), '[]'::jsonb)
-			AS reviewers,
-			COALESCE(jsonb_agg(jsonb_build_object('id', u.id, 'username', u.username, 'email', u.email)) FILTER (WHERE u.id IS NOT NULL AND ut.role = 'assignee'), '[]'::jsonb)
-			AS assignees
+			t.id, t.name, t.description, t.status, t.priority, t.deadline, t.completed_at,
+			p.id, p.name,
+			u.id, u.username, u.email,
+			ut.role
 		FROM task t
 		LEFT JOIN project p ON t.project_id = p.id
 		LEFT JOIN user_task ut ON t.id = ut.task_id
 		LEFT JOIN "user" u ON ut.user_id = u.id
-		WHERE t.id = $1
-		GROUP BY t.id, t.name, t.description, t.status, t.priority, t.deadline, t.completed_at, p.id, p.name;`,
-		taskID).Scan(&task.Id, &task.Name, &task.Description, &task.Status, &task.Priority, &task.Deadline, &task.Completed, &task.Project, &task.Creator, &task.Reviewer, &task.Assigned)
-
+		WHERE t.id = $1`,
+		taskID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return model.TaskResponse{}, ErrTaskNotFound
-		}
 		return model.TaskResponse{}, err
-	}
-	return task, nil
-}
-
-func (d *DBStorage) GetList() ([]model.Subscription, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	rows, err := d.pool.Query(ctx,
-		`SELECT service_name, price, user_id, start_date FROM subscriptions ORDER BY start_date DESC`)
-	if err != nil {
-		return nil, fmt.Errorf("query execution error: %w", err)
 	}
 	defer rows.Close()
 
-	var subscriptionsList []model.Subscription
+	var task model.TaskResponse
+	var taskFound bool
+	creatorSet := make(map[uuid.UUID]bool)
+	reviewerSeen := make(map[uuid.UUID]bool)
+	assigneeSeen := make(map[uuid.UUID]bool)
+
 	for rows.Next() {
-		var subscription model.Subscription
-		if err := rows.Scan(&subscription.ServiceName, &subscription.Price, &subscription.UserID, &subscription.StartDate); err != nil {
-			return nil, fmt.Errorf("data scan error: %w", err)
+		var (
+			tID        uuid.UUID
+			name       string
+			desc       string
+			status     model.TaskStatus
+			priority   model.TaskPriority
+			deadline   *time.Time
+			completed  *time.Time
+			pID        *uuid.UUID
+			pName      *string
+			uID        *uuid.UUID
+			uName      *string
+			uEmail     *string
+			role       *string
+		)
+
+		if err := rows.Scan(
+			&tID, &name, &desc, &status, &priority, &deadline, &completed,
+			&pID, &pName,
+			&uID, &uName, &uEmail,
+			&role,
+		); err != nil {
+			return model.TaskResponse{}, err
 		}
-		subscriptionsList = append(subscriptionsList, subscription)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows processing error: %w", err)
+
+		if !taskFound {
+			task = model.TaskResponse{
+				Id:          tID,
+				Name:        name,
+				Description: desc,
+				Status:      status,
+				Priority:    priority,
+				Deadline:    deadline,
+				Completed:   completed,
+			}
+			if pID != nil && pName != nil {
+				task.Project = model.ProjectDB{Id: *pID, Name: *pName}
+			}
+			taskFound = true
+		}
+
+		if uID == nil || role == nil {
+			continue
+		}
+
+		user := model.UserDB{
+			Id:       *uID,
+			Username: derefStr(uName),
+			Email:    derefStr(uEmail),
+		}
+
+		switch *role {
+		case string(model.TaskCreator):
+			if !creatorSet[*uID] {
+				task.Creator = user
+				creatorSet[*uID] = true
+			}
+		case string(model.TaskReviewer):
+			if !reviewerSeen[*uID] {
+				task.Reviewers = append(task.Reviewers, user)
+				reviewerSeen[*uID] = true
+			}
+		case string(model.TaskAssignee):
+			if !assigneeSeen[*uID] {
+				task.Assignees = append(task.Assignees, user)
+				assigneeSeen[*uID] = true
+			}
+		}
 	}
 
-	return subscriptionsList, nil
+	if err := rows.Err(); err != nil {
+		return model.TaskResponse{}, err
+	}
+
+	if !taskFound {
+		return model.TaskResponse{}, ErrTaskNotFound
+	}
+
+	return task, nil
 }
 
-func (d *DBStorage) Update(subscriptionID int, subscription model.Subscription) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	result, err := d.pool.Exec(ctx,
-		`UPDATE subscriptions SET service_name = $1, price = $2, user_id = $3, start_date = $4 WHERE id = $5`,
-		subscription.ServiceName, subscription.Price, subscription.UserID, subscription.StartDate, subscriptionID)
-
-	if err != nil {
-		return fmt.Errorf("failed to update subscription: %w", err)
+func derefStr(s *string) string {
+	if s != nil {
+		return *s
 	}
-
-	if result.RowsAffected() == 0 {
-		return ErrSubscriptionNotFound
-	}
-
-	return nil
+	return ""
 }
 
-func (d *DBStorage) Delete(subscriptionID int) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+// func (d *DBStorage) GetList() ([]model.Subscription, error) {
+// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+// 	defer cancel()
 
-	result, err := d.pool.Exec(ctx,
-		`DELETE FROM subscriptions WHERE id = $1`,
-		subscriptionID,
-	)
+// 	rows, err := d.pool.Query(ctx,
+// 		`SELECT service_name, price, user_id, start_date FROM subscriptions ORDER BY start_date DESC`)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("query execution error: %w", err)
+// 	}
+// 	defer rows.Close()
 
-	if err != nil {
-		return fmt.Errorf("failed to delete subscription: %w", err)
-	}
+// 	var subscriptionsList []model.Subscription
+// 	for rows.Next() {
+// 		var subscription model.Subscription
+// 		if err := rows.Scan(&subscription.ServiceName, &subscription.Price, &subscription.UserID, &subscription.StartDate); err != nil {
+// 			return nil, fmt.Errorf("data scan error: %w", err)
+// 		}
+// 		subscriptionsList = append(subscriptionsList, subscription)
+// 	}
+// 	if err = rows.Err(); err != nil {
+// 		return nil, fmt.Errorf("rows processing error: %w", err)
+// 	}
 
-	if result.RowsAffected() == 0 {
-		return ErrSubscriptionNotFound
-	}
+// 	return subscriptionsList, nil
+// }
 
-	return nil
-}
+// func (d *DBStorage) Update(subscriptionID int, subscription model.Subscription) error {
+// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+// 	defer cancel()
 
-func (d *DBStorage) GetSum(serviceName string, userID uuid.UUID, startPeriod time.Time, endPeriod time.Time) (model.TotalPriceResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+// 	result, err := d.pool.Exec(ctx,
+// 		`UPDATE subscriptions SET service_name = $1, price = $2, user_id = $3, start_date = $4 WHERE id = $5`,
+// 		subscription.ServiceName, subscription.Price, subscription.UserID, subscription.StartDate, subscriptionID)
 
-	var totalPrice int
+// 	if err != nil {
+// 		return fmt.Errorf("failed to update subscription: %w", err)
+// 	}
 
-	err := d.pool.QueryRow(ctx,
-		`SELECT COALESCE(SUM(price), 0)
-         FROM subscriptions
-         WHERE service_name = $1
-           AND user_id = $2
-           AND start_date >= $3
-           AND start_date <= $4`,
-		serviceName, userID, startPeriod, endPeriod,
-	).Scan(&totalPrice)
+// 	if result.RowsAffected() == 0 {
+// 		return ErrSubscriptionNotFound
+// 	}
 
-	if err != nil {
-		return model.TotalPriceResponse{}, fmt.Errorf("failed to get sum: %w", err)
-	}
+// 	return nil
+// }
 
-	return model.TotalPriceResponse{TotalPrice: totalPrice}, nil
-}
+// func (d *DBStorage) Delete(subscriptionID int) error {
+// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+// 	defer cancel()
+
+// 	result, err := d.pool.Exec(ctx,
+// 		`DELETE FROM subscriptions WHERE id = $1`,
+// 		subscriptionID,
+// 	)
+
+// 	if err != nil {
+// 		return fmt.Errorf("failed to delete subscription: %w", err)
+// 	}
+
+// 	if result.RowsAffected() == 0 {
+// 		return ErrSubscriptionNotFound
+// 	}
+
+// 	return nil
+// }
+
+// func (d *DBStorage) GetSum(serviceName string, userID uuid.UUID, startPeriod time.Time, endPeriod time.Time) (model.TotalPriceResponse, error) {
+// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+// 	defer cancel()
+
+// 	var totalPrice int
+
+// 	err := d.pool.QueryRow(ctx,
+// 		`SELECT COALESCE(SUM(price), 0)
+//          FROM subscriptions
+//          WHERE service_name = $1
+//            AND user_id = $2
+//            AND start_date >= $3
+//            AND start_date <= $4`,
+// 		serviceName, userID, startPeriod, endPeriod,
+// 	).Scan(&totalPrice)
+
+// 	if err != nil {
+// 		return model.TotalPriceResponse{}, fmt.Errorf("failed to get sum: %w", err)
+// 	}
+
+// 	return model.TotalPriceResponse{TotalPrice: totalPrice}, nil
+// }

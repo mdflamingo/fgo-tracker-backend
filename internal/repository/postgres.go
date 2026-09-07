@@ -172,25 +172,26 @@ func (d *DBStorage) GetOne(taskID uuid.UUID) (model.TaskResponse, error) {
 
 	var task model.TaskResponse
 	var taskFound bool
+
 	creatorSet := make(map[uuid.UUID]bool)
 	reviewerSeen := make(map[uuid.UUID]bool)
 	assigneeSeen := make(map[uuid.UUID]bool)
 
 	for rows.Next() {
 		var (
-			tID        uuid.UUID
-			name       string
-			desc       string
-			status     model.TaskStatus
-			priority   model.TaskPriority
-			deadline   *time.Time
-			completed  *time.Time
-			pID        *uuid.UUID
-			pName      *string
-			uID        *uuid.UUID
-			uName      *string
-			uEmail     *string
-			role       *string
+			tID       uuid.UUID
+			name      string
+			desc      string
+			status    model.TaskStatus
+			priority  model.TaskPriority
+			deadline  *time.Time
+			completed *time.Time
+			pID       *uuid.UUID
+			pName     *string
+			uID       *uuid.UUID
+			uName     *string
+			uEmail    *string
+			role      *string
 		)
 
 		if err := rows.Scan(

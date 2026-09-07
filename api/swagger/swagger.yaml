@@ -1,0 +1,195 @@
+basePath: /
+definitions:
+  model.ProjectDB:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  model.TaskCreateRequest:
+    properties:
+      assigned_id:
+        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        type: string
+      deadline:
+        example: "2025-07-01T00:00:00Z"
+        type: string
+      description:
+        example: Some description
+        type: string
+      name:
+        example: Update user table
+        type: string
+      priority:
+        allOf:
+        - $ref: '#/definitions/model.TaskPriority'
+        example: medium
+      project_id:
+        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        type: string
+      reviewer_id:
+        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/model.TaskStatus'
+        example: backlog
+    required:
+    - assigned_id
+    - deadline
+    - description
+    - name
+    - priority
+    - project_id
+    - reviewer_id
+    - status
+    type: object
+  model.TaskCreateResponse:
+    properties:
+      id:
+        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        type: string
+    type: object
+  model.TaskPriority:
+    enum:
+    - low
+    - medium
+    - high
+    - critical
+    type: string
+    x-enum-varnames:
+    - TaskPriorityLow
+    - TaskPriorityMedium
+    - TaskPriorityHigh
+    - TaskPriorityCritical
+  model.TaskResponse:
+    properties:
+      assigned:
+        $ref: '#/definitions/model.UserDB'
+      completed:
+        example: "2025-07-01T00:00:00Z"
+        type: string
+      creator:
+        $ref: '#/definitions/model.UserDB'
+      deadline:
+        example: "2025-07-01T00:00:00Z"
+        type: string
+      description:
+        example: Some description
+        type: string
+      id:
+        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        type: string
+      name:
+        example: Update user table
+        type: string
+      priority:
+        allOf:
+        - $ref: '#/definitions/model.TaskPriority'
+        example: medium
+      project:
+        $ref: '#/definitions/model.ProjectDB'
+      reviewer:
+        $ref: '#/definitions/model.UserDB'
+      status:
+        allOf:
+        - $ref: '#/definitions/model.TaskStatus'
+        example: backlog
+    required:
+    - completed
+    - deadline
+    type: object
+  model.TaskStatus:
+    enum:
+    - backlog
+    - in_progress
+    - review
+    - done
+    type: string
+    x-enum-varnames:
+    - TaskStatusBacklog
+    - TaskStatusInProgress
+    - TaskStatusReview
+    - TaskStatusDone
+  model.UserDB:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: API for task tracker
+  termsOfService: http://swagger.io/terms/
+  title: FGO Tracker API
+  version: 1.0.0
+paths:
+  /api/task:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new task with optional assignee and reviewer
+      parameters:
+      - description: Task data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TaskCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created task ID
+          schema:
+            $ref: '#/definitions/model.TaskCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create new task
+      tags:
+      - Tasks
+  /api/task/{id}:
+    get:
+      description: Returns information about a specific task
+      parameters:
+      - description: Task UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task found
+          schema:
+            $ref: '#/definitions/model.TaskResponse'
+        "400":
+          description: Invalid task ID
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get task by ID
+      tags:
+      - Tasks
+swagger: "2.0"

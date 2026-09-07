@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Server",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/cmd/",
+      "buildFlags": "-gcflags='all=-N -l'",
+      "env": {
+        "DATABASE_DSN": "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable",
+        "LOG_LEVEL": "DEBUG"
+      },
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

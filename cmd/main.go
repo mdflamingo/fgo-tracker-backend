@@ -15,7 +15,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-// @title Online Subscription API
+// @title Task Tracker API
 // @version 1.0.0
 // @description API for task tracker
 // @termsOfService http://swagger.io/terms/

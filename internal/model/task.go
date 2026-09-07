@@ -55,10 +55,10 @@ type TaskResponse struct {
 	Priority    TaskPriority `json:"priority" example:"medium" description:"Task priority"`
 	Project     ProjectDB    `json:"project" description:"Project"`
 	Creator     UserDB       `json:"creator" description:"User with role creator"`
-	Assigned    UserDB       `json:"assigned" description:"User with role assignee"`
-	Reviewer    UserDB       `json:"reviewer" description:"User with role reviewer"`
-	Deadline    time.Time    `json:"deadline" example:"2025-07-01T00:00:00Z" description:"Deadline date" validate:"required"`
-	Completed   time.Time    `json:"completed" example:"2025-07-01T00:00:00Z" description:"Completed date" validate:"required"`
+	Assignees   []UserDB     `json:"assignees" description:"Users with role assignee"`
+	Reviewers   []UserDB     `json:"reviewers" description:"Users with role reviewer"`
+	Deadline    *time.Time   `json:"deadline" example:"2025-07-01T00:00:00Z" description:"Deadline date"`
+	Completed   *time.Time   `json:"completed" example:"2025-07-01T00:00:00Z" description:"Completed date"`
 }
 
 // / DB models ///

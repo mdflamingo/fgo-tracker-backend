@@ -134,7 +134,7 @@ func (d *DBStorage) Create(task model.TaskCreate, userTaskList []model.TaskUserC
 				unnest($1::uuid[]),
 				unnest($2::uuid[]),
 				unnest($3::uuid[]),
-				unnest($4::text[])`,
+				unnest($4::task_role[])`,
 			ids, taskIDs, userIDs, roles,
 		)
 		if err != nil {

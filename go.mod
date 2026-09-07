@@ -2,7 +2,10 @@ module github.com/mdflamingo/fgo-tracker-backend
 
 go 1.26.1
 
-require go.uber.org/zap v1.28.0
+require (
+	github.com/swaggo/swag v1.16.6
+	go.uber.org/zap v1.28.0
+)
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
@@ -16,8 +19,9 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
+	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	github.com/swaggo/files v0.0.0-20220610200504-28940afbdbfe // indirect
-	github.com/swaggo/swag v1.8.1 // indirect
+	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sync v0.18.0 // indirect
 	golang.org/x/text v0.31.0 // indirect

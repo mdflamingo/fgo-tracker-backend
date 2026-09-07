@@ -162,7 +162,8 @@ func (s *TaskService) GetTask(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/task [post]
 func (s *TaskService) CreateTask(w http.ResponseWriter, r *http.Request) {
-	creatorID := mustNewUUIDV7()
+	// creatorID := mustNewUUIDV7()
+	creatorID := uuid.MustParse("01a06bf1-8749-7cd1-884b-689d6a59f9c7") // поле будет доставваться из токена
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -299,6 +300,6 @@ func mustNewUUIDV7() uuid.UUID {
 	if err != nil {
 		panic("critical: failed to generate UUID: " + err.Error())
 	}
-
+	fmt.Println(uuid)
 	return uuid
 }

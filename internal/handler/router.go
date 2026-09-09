@@ -31,9 +31,9 @@ func NewRouter(conf *config.Config, storage *repository.DBStorage) *chi.Mux {
 		r.Post("/api/task", func(w http.ResponseWriter, r *http.Request) {
 			taskService.CreateTask(w, r)
 		})
-		// r.Get("/api/task/list", func(w http.ResponseWriter, r *http.Request) {
-		// 	taskService.GetList(w, r)
-		// })
+		r.Get("/api/task/list", func(w http.ResponseWriter, r *http.Request) {
+			taskService.GetList(w, r)
+		})
 		r.Get("/api/task/{id}", func(w http.ResponseWriter, r *http.Request) {
 			taskService.GetTask(w, r)
 		})

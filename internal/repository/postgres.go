@@ -266,31 +266,34 @@ func derefStr(s *string) string {
 	return ""
 }
 
-// func (d *DBStorage) GetList() ([]model.Subscription, error) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-// 	defer cancel()
+func (d *DBStorage) GetList() ([]model.TaskListResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
-// 	rows, err := d.pool.Query(ctx,
-// 		`SELECT service_name, price, user_id, start_date FROM subscriptions ORDER BY start_date DESC`)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("query execution error: %w", err)
-// 	}
-// 	defer rows.Close()
+	rows, err := d.pool.Query(ctx,
+		`SELECT t.id, t.name, t.description, t.status, t.priority, p.name
+			FROM task t
+			LEFT JOIN project p ON t.project_id = p.id
+			ORDER BY t.created_at DESC`)
+	if err != nil {
+		return nil, fmt.Errorf("query execution error: %w", err)
+	}
+	defer rows.Close()
 
-// 	var subscriptionsList []model.Subscription
-// 	for rows.Next() {
-// 		var subscription model.Subscription
-// 		if err := rows.Scan(&subscription.ServiceName, &subscription.Price, &subscription.UserID, &subscription.StartDate); err != nil {
-// 			return nil, fmt.Errorf("data scan error: %w", err)
-// 		}
-// 		subscriptionsList = append(subscriptionsList, subscription)
-// 	}
-// 	if err = rows.Err(); err != nil {
-// 		return nil, fmt.Errorf("rows processing error: %w", err)
-// 	}
+	var tasksList []model.TaskListResponse
+	for rows.Next() {
+		var task model.TaskListResponse
+		if err := rows.Scan(&task.Id, &task.Name, &task.Description, &task.Status, &task.Priority, &task.ProjectName); err != nil {
+			return nil, fmt.Errorf("data scan error: %w", err)
+		}
+		tasksList = append(tasksList, task)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows processing error: %w", err)
+	}
 
-// 	return subscriptionsList, nil
-// }
+	return tasksList, nil
+}
 
 // func (d *DBStorage) Update(subscriptionID int, subscription model.Subscription) error {
 // 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

@@ -65,6 +65,41 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/task/list": {
+            "get": {
+                "description": "Return all tasks in system",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Get all tasks",
+                "responses": {
+                    "200": {
+                        "description": "Tasks",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.TaskListResponse"
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "Tasks not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/task/{id}": {
             "get": {
                 "description": "Returns information about a specific task",
@@ -189,6 +224,42 @@ const docTemplate = `{
                 }
             }
         },
+        "model.TaskListResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "Some description"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Update user table"
+                },
+                "priority": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.TaskPriority"
+                        }
+                    ],
+                    "example": "medium"
+                },
+                "project_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.TaskStatus"
+                        }
+                    ],
+                    "example": "backlog"
+                }
+            }
+        },
         "model.TaskPriority": {
             "type": "string",
             "enum": [
@@ -206,13 +277,12 @@ const docTemplate = `{
         },
         "model.TaskResponse": {
             "type": "object",
-            "required": [
-                "completed",
-                "deadline"
-            ],
             "properties": {
-                "assigned": {
-                    "$ref": "#/definitions/model.UserDB"
+                "assignees": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.UserDB"
+                    }
                 },
                 "completed": {
                     "type": "string",
@@ -248,8 +318,11 @@ const docTemplate = `{
                 "project": {
                     "$ref": "#/definitions/model.ProjectDB"
                 },
-                "reviewer": {
-                    "$ref": "#/definitions/model.UserDB"
+                "reviewers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.UserDB"
+                    }
                 },
                 "status": {
                     "allOf": [
@@ -299,7 +372,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "FGO Tracker API",
+	Title:            "Task Tracker API",
 	Description:      "API for task tracker",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

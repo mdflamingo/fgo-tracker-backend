@@ -51,6 +51,28 @@ definitions:
         example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
         type: string
     type: object
+  model.TaskListResponse:
+    properties:
+      description:
+        example: Some description
+        type: string
+      id:
+        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        type: string
+      name:
+        example: Update user table
+        type: string
+      priority:
+        allOf:
+        - $ref: '#/definitions/model.TaskPriority'
+        example: medium
+      project_name:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/model.TaskStatus'
+        example: backlog
+    type: object
   model.TaskPriority:
     enum:
     - low
@@ -65,8 +87,10 @@ definitions:
     - TaskPriorityCritical
   model.TaskResponse:
     properties:
-      assigned:
-        $ref: '#/definitions/model.UserDB'
+      assignees:
+        items:
+          $ref: '#/definitions/model.UserDB'
+        type: array
       completed:
         example: "2025-07-01T00:00:00Z"
         type: string
@@ -90,15 +114,14 @@ definitions:
         example: medium
       project:
         $ref: '#/definitions/model.ProjectDB'
-      reviewer:
-        $ref: '#/definitions/model.UserDB'
+      reviewers:
+        items:
+          $ref: '#/definitions/model.UserDB'
+        type: array
       status:
         allOf:
         - $ref: '#/definitions/model.TaskStatus'
         example: backlog
-    required:
-    - completed
-    - deadline
     type: object
   model.TaskStatus:
     enum:
@@ -128,7 +151,7 @@ info:
     name: API Support
   description: API for task tracker
   termsOfService: http://swagger.io/terms/
-  title: FGO Tracker API
+  title: Task Tracker API
   version: 1.0.0
 paths:
   /api/task:
@@ -190,6 +213,29 @@ paths:
           schema:
             type: string
       summary: Get task by ID
+      tags:
+      - Tasks
+  /api/task/list:
+    get:
+      description: Return all tasks in system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tasks
+          schema:
+            items:
+              $ref: '#/definitions/model.TaskListResponse'
+            type: array
+        "204":
+          description: Tasks not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get all tasks
       tags:
       - Tasks
 swagger: "2.0"

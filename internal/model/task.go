@@ -61,6 +61,15 @@ type TaskResponse struct {
 	Completed   *time.Time   `json:"completed" example:"2025-07-01T00:00:00Z" description:"Completed date"`
 }
 
+type TaskListResponse struct {
+	Id          uuid.UUID    `json:"id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"task ID"`
+	Name        string       `json:"name" example:"Update user table" description:"Task name"`
+	Description string       `json:"description" example:"Some description" description:"Task description"`
+	Status      TaskStatus   `json:"status" example:"backlog" description:"Task status"`
+	Priority    TaskPriority `json:"priority" example:"medium" description:"Task priority"`
+	ProjectName string       `json:"project_name" description:"Project"`
+}
+
 // / DB models ///
 type TaskCreate struct {
 	Id          uuid.UUID

@@ -24,39 +24,39 @@ func NewTaskService(repo *repository.DBStorage) *TaskService {
 	return &TaskService{repo: repo}
 }
 
-// @Summary Получение списка всех подписок
-// @Description Возвращает список всех подписок в системе
-// @Tags Subscriptions
+// @Summary Get all tasks
+// @Description Return all tasks in system
+// @Tags Tasks
 // @Produce json
-// @Success 200 {array} model.Subscription "Успешный ответ со списком подписок"
-// @Failure 204 {string} string "Нет содержимого (список подписок пуст)"
-// @Failure 500 {string} string "Внутренняя ошибка сервера"
-// @Router /api/subscription/list [get]
-// func (s *TaskService) GetList(w http.ResponseWriter, r *http.Request) {
-// 	subscriptions, err := s.repo.GetList()
-// 	if err != nil {
-// 		logger.Log.Error("failed to get subscriptions", zap.Error(err))
-// 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-// 		return
-// 	}
+// @Success 200 {array} model.TaskListResponse "Tasks"
+// @Failure 204 {string} string "Tasks not found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/task/list [get]
+func (s *TaskService) GetList(w http.ResponseWriter, r *http.Request) {
+	tasks, err := s.repo.GetList()
+	if err != nil {
+		logger.Log.Error("failed to get subscriptions", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 
-// 	if len(subscriptions) == 0 {
-// 		w.Header().Set("Content-Type", "application/json")
-// 		w.WriteHeader(http.StatusNoContent)
-// 		return
-// 	}
+	if len(tasks) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
-// 	respJSON, err := json.Marshal(subscriptions)
-// 	if err != nil {
-// 		logger.Log.Error("failed to marshal response to JSON", zap.Error(err))
-// 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-// 		return
-// 	}
+	respJSON, err := json.Marshal(tasks)
+	if err != nil {
+		logger.Log.Error("failed to marshal response to JSON", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(http.StatusOK)
-// 	w.Write(respJSON)
-// }
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(respJSON)
+}
 
 // @Summary Get task by ID
 // @Description Returns information about a specific task

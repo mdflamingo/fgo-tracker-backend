@@ -333,26 +333,3 @@ func (d *DBStorage) GetList() ([]model.TaskListResponse, error) {
 
 // 	return nil
 // }
-
-// func (d *DBStorage) GetSum(serviceName string, userID uuid.UUID, startPeriod time.Time, endPeriod time.Time) (model.TotalPriceResponse, error) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-// 	defer cancel()
-
-// 	var totalPrice int
-
-// 	err := d.pool.QueryRow(ctx,
-// 		`SELECT COALESCE(SUM(price), 0)
-//          FROM subscriptions
-//          WHERE service_name = $1
-//            AND user_id = $2
-//            AND start_date >= $3
-//            AND start_date <= $4`,
-// 		serviceName, userID, startPeriod, endPeriod,
-// 	).Scan(&totalPrice)
-
-// 	if err != nil {
-// 		return model.TotalPriceResponse{}, fmt.Errorf("failed to get sum: %w", err)
-// 	}
-
-// 	return model.TotalPriceResponse{TotalPrice: totalPrice}, nil
-// }

@@ -62,7 +62,7 @@ func (s *TaskService) GetList(w http.ResponseWriter, r *http.Request) {
 // @Description Returns information about a specific task
 // @Tags Tasks
 // @Produce json
-// @Param id path string true "Task UUID"
+// @Param id path string true "UUID"
 // @Success 200 {object} model.TaskResponse "Task found"
 // @Failure 400 {string} string "Invalid task ID"
 // @Failure 404 {string} string "Task not found"
@@ -100,56 +100,56 @@ func (s *TaskService) GetTask(w http.ResponseWriter, r *http.Request) {
 	w.Write(respJSON)
 }
 
-// @Summary Обновление подписки
-// @Description Обновляет информацию о существующей подписке
-// @Tags Subscriptions
+// @Summary Task update
+// @Description Updates information about the existing task
+// @Tags Task
 // @Accept json
 // @Produce json
-// @Param id path int true "ID подписки для обновления" minimum(1)
-// @Param request body model.Subscription true "Данные для обновления"
-// @Success 200 {string} string "Подписка успешно обновлена"
-// @Failure 204 {string} string "Подписка не найдена"
-// @Failure 400 {string} string "Неверный запрос"
-// @Failure 500 {string} string "Внутренняя ошибка сервера"
-// @Router /api/subscription/{id} [put]
-// func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
-// 	body, err := io.ReadAll(r.Body)
-// 	if err != nil {
-// 		logger.Log.Error("failed to read request body", zap.Error(err))
-// 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-// 		return
-// 	}
+// @Param id path string true "UUID"
+// @Param request body model.TaskUpdateRequest true "Data for update"
+// @Success 200 {string} string "Successful task update"s
+// @Failure 400 {string} string "Invalid task ID"
+// @Failure 404 {string} string "Task not found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/task/{id} [put]
+func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		logger.Log.Error("failed to read request body", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
 
-// 	var updateSubscription model.Subscription
-// 	if err := json.Unmarshal(body, &updateSubscription); err != nil {
-// 		logger.Log.Warn("invalid request body", zap.Error(err))
-// 		http.Error(w, "Invalid request body", http.StatusBadRequest)
-// 		return
-// 	}
+	var updateTask model.TaskUpdateRequest
+	if err := json.Unmarshal(body, &updateTask); err != nil {
+		logger.Log.Warn("invalid request body", zap.Error(err))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
 
-// 	subscriptionID, err := parseTaskID(r)
-// 	if err != nil {
-// 		logger.Log.Warn("invalid subscription ID", zap.Error(err))
-// 		http.Error(w, err.Error(), http.StatusBadRequest)
-// 		return
-// 	}
+	taskID, err := parseTaskID(r)
+	if err != nil {
+		logger.Log.Warn("invalid task ID", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-// 	err = s.repo.Update(subscriptionID, updateSubscription)
-// 	if err != nil {
-// 		if errors.Is(err, repository.ErrSubscriptionNotFound) {
-// 			logger.Log.Error("subscription not found", zap.Error(err))
-// 			http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
-// 			return
-// 		} else {
-// 			logger.Log.Error("failed to update subscription", zap.Error(err))
-// 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-// 			return
-// 		}
-// 	}
+	err = s.repo.Update(taskID, updateTask)
+	if err != nil {
+		if errors.Is(err, repository.ErrTaskNotFound) {
+			logger.Log.Error("task not found", zap.Error(err))
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		} else {
+			logger.Log.Error("failed to update task", zap.Error(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	}
 
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(http.StatusOK)
-// }
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+}
 
 // @Summary Create new task
 // @Description Creates a new task with optional assignee and reviewer
@@ -249,36 +249,36 @@ func (s *TaskService) CreateTask(w http.ResponseWriter, r *http.Request) {
 // @Summary Delete task
 // @Description Delete task by ID
 // @Tags Tasks
-// @Param id path int true "ID task for delete" minimum(1)
-// @Success 200 {string} string ""
-// @Failure 204 {string} string ""
-// @Failure 400 {string} string ""
-// @Failure 500 {string} string ""
-// @Router /api/subscription/{id} [delete]
-// func (s *TaskService) DeleteTask(w http.ResponseWriter, r *http.Request) {
-// 	subscriptionID, err := parseTaskID(r)
-// 	if err != nil {
-// 		logger.Log.Warn("invalid subscription ID", zap.Error(err))
-// 		http.Error(w, err.Error(), http.StatusBadRequest)
-// 		return
-// 	}
+// @Param id path string true "UUID"
+// @Success 200 {string} string "Successful task deletion"
+// @Failure 400 {string} string "Invalid task ID"
+// @Failure 404 {string} string "Task not found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/task/{id} [delete]
+func (s *TaskService) DeleteTask(w http.ResponseWriter, r *http.Request) {
+	taskID, err := parseTaskID(r)
+	if err != nil {
+		logger.Log.Warn("invalid task ID", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-// 	err = s.repo.Delete(subscriptionID)
-// 	if err != nil {
-// 		if errors.Is(err, repository.ErrSubscriptionNotFound) {
-// 			logger.Log.Error("subscription not found", zap.Error(err))
-// 			http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
-// 			return
-// 		} else {
-// 			logger.Log.Error("failed to delete subscription", zap.Error(err))
-// 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-// 			return
-// 		}
-// 	}
+	err = s.repo.Delete(taskID)
+	if err != nil {
+		if errors.Is(err, repository.ErrTaskNotFound) {
+			logger.Log.Error("task not found", zap.Error(err))
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		} else {
+			logger.Log.Error("failed to delete task", zap.Error(err))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	}
 
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(http.StatusOK)
-// }
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+}
 
 func parseTaskID(r *http.Request) (uuid.UUID, error) {
 	idStr := chi.URLParam(r, "id")

@@ -43,6 +43,18 @@ type TaskCreateRequest struct {
 	Deadline    time.Time    `json:"deadline" example:"2025-07-01T00:00:00Z" description:"Deadline date" validate:"required"`
 }
 
+type TaskUpdateRequest struct {
+	Name        string       `json:"name" example:"Update user table" description:"Task name"`
+	Description string       `json:"description" example:"Some description" description:"Task description"`
+	Status      TaskStatus   `json:"status" example:"backlog" description:"Task status"`
+	Priority    TaskPriority `json:"priority" example:"medium" description:"Task priority"`
+	ProjectId   uuid.UUID    `json:"project_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"Project id"`
+	AssignedId  uuid.UUID    `json:"assigned_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"User id with role assignee"`
+	ReviewerId  uuid.UUID    `json:"reviewer_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"User id with role reviewer"`
+	Deadline    time.Time    `json:"deadline" example:"2025-07-01T00:00:00Z" description:"Deadline date" validate:"required"`
+	CompletedAt time.Time    `json:"completed_at" example:"2025-07-01T00:00:00Z" description:"Completed date"`
+}
+
 type TaskCreateResponse struct {
 	ID uuid.UUID `json:"id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"Created task ID"`
 }

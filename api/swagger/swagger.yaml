@@ -135,6 +135,40 @@ definitions:
     - TaskStatusInProgress
     - TaskStatusReview
     - TaskStatusDone
+  model.TaskUpdateRequest:
+    properties:
+      assigned_id:
+        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        type: string
+      completed_at:
+        example: "2025-07-01T00:00:00Z"
+        type: string
+      deadline:
+        example: "2025-07-01T00:00:00Z"
+        type: string
+      description:
+        example: Some description
+        type: string
+      name:
+        example: Update user table
+        type: string
+      priority:
+        allOf:
+        - $ref: '#/definitions/model.TaskPriority'
+        example: medium
+      project_id:
+        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        type: string
+      reviewer_id:
+        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/model.TaskStatus'
+        example: backlog
+    required:
+    - deadline
+    type: object
   model.UserDB:
     properties:
       email:
@@ -185,10 +219,38 @@ paths:
       tags:
       - Tasks
   /api/task/{id}:
+    delete:
+      description: Delete task by ID
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Successful task deletion
+          schema:
+            type: string
+        "400":
+          description: Invalid task ID
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete task
+      tags:
+      - Tasks
     get:
       description: Returns information about a specific task
       parameters:
-      - description: Task UUID
+      - description: UUID
         in: path
         name: id
         required: true
@@ -215,6 +277,44 @@ paths:
       summary: Get task by ID
       tags:
       - Tasks
+    put:
+      consumes:
+      - application/json
+      description: Updates information about the existing task
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Data for update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TaskUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful task update"s
+          schema:
+            type: string
+        "400":
+          description: Invalid task ID
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Task update
+      tags:
+      - Task
   /api/task/list:
     get:
       description: Return all tasks in system

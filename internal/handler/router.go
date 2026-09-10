@@ -37,12 +37,12 @@ func NewRouter(conf *config.Config, storage *repository.DBStorage) *chi.Mux {
 		r.Get("/api/task/{id}", func(w http.ResponseWriter, r *http.Request) {
 			taskService.GetTask(w, r)
 		})
-		// r.Put("/api/task/{id}", func(w http.ResponseWriter, r *http.Request) {
-		// 	taskService.UpdateTask(w, r)
-		// })
-		// r.Delete("/api/task/{id}", func(w http.ResponseWriter, r *http.Request) {
-		// 	taskService.DeleteTask(w, r)
-		// })
+		r.Put("/api/task/{id}", func(w http.ResponseWriter, r *http.Request) {
+			taskService.UpdateTask(w, r)
+		})
+		r.Delete("/api/task/{id}", func(w http.ResponseWriter, r *http.Request) {
+			taskService.DeleteTask(w, r)
+		})
 	})
 
 	return r

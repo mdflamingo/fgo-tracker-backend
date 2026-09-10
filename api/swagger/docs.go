@@ -113,7 +113,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Task UUID",
+                        "description": "UUID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -124,6 +124,105 @@ const docTemplate = `{
                         "description": "Task found",
                         "schema": {
                             "$ref": "#/definitions/model.TaskResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid task ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Task not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates information about the existing task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Task"
+                ],
+                "summary": "Task update",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Data for update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TaskUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful task update\"s",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid task ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Task not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete task by ID",
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Delete task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful task deletion",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "400": {
@@ -348,6 +447,58 @@ const docTemplate = `{
                 "TaskStatusReview",
                 "TaskStatusDone"
             ]
+        },
+        "model.TaskUpdateRequest": {
+            "type": "object",
+            "required": [
+                "deadline"
+            ],
+            "properties": {
+                "assigned_id": {
+                    "type": "string",
+                    "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                },
+                "completed_at": {
+                    "type": "string",
+                    "example": "2025-07-01T00:00:00Z"
+                },
+                "deadline": {
+                    "type": "string",
+                    "example": "2025-07-01T00:00:00Z"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Some description"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Update user table"
+                },
+                "priority": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.TaskPriority"
+                        }
+                    ],
+                    "example": "medium"
+                },
+                "project_id": {
+                    "type": "string",
+                    "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                },
+                "reviewer_id": {
+                    "type": "string",
+                    "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                },
+                "status": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.TaskStatus"
+                        }
+                    ],
+                    "example": "backlog"
+                }
+            }
         },
         "model.UserDB": {
             "type": "object",

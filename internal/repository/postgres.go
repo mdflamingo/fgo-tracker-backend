@@ -295,41 +295,43 @@ func (d *DBStorage) GetList() ([]model.TaskListResponse, error) {
 	return tasksList, nil
 }
 
-// func (d *DBStorage) Update(subscriptionID int, subscription model.Subscription) error {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-// 	defer cancel()
+func (d *DBStorage) Update(taskID uuid.UUID, task model.TaskUpdateRequest) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
-// 	result, err := d.pool.Exec(ctx,
-// 		`UPDATE subscriptions SET service_name = $1, price = $2, user_id = $3, start_date = $4 WHERE id = $5`,
-// 		subscription.ServiceName, subscription.Price, subscription.UserID, subscription.StartDate, subscriptionID)
+	result, err := d.pool.Exec(ctx,
+		`UPDATE task
+			SET id = $1, name = $2, description = $3, status = $4, priority = $5, project_id = $6, deadline = $7, completed_at = $8
+		WHERE id = $9`,
+		taskID, task.Name, task.Description, task.Status, task.Priority, task.ProjectId, task.Deadline, task.CompletedAt, taskID)
 
-// 	if err != nil {
-// 		return fmt.Errorf("failed to update subscription: %w", err)
-// 	}
+	if err != nil {
+		return fmt.Errorf("failed to update task: %w", err)
+	}
 
-// 	if result.RowsAffected() == 0 {
-// 		return ErrSubscriptionNotFound
-// 	}
+	if result.RowsAffected() == 0 {
+		return ErrTaskNotFound
+	}
 
-// 	return nil
-// }
+	return nil
+}
 
-// func (d *DBStorage) Delete(subscriptionID int) error {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-// 	defer cancel()
+func (d *DBStorage) Delete(taskID uuid.UUID) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
-// 	result, err := d.pool.Exec(ctx,
-// 		`DELETE FROM subscriptions WHERE id = $1`,
-// 		subscriptionID,
-// 	)
+	result, err := d.pool.Exec(ctx,
+		`DELETE FROM task WHERE id = $1`,
+		taskID,
+	)
 
-// 	if err != nil {
-// 		return fmt.Errorf("failed to delete subscription: %w", err)
-// 	}
+	if err != nil {
+		return fmt.Errorf("failed to delete task: %w", err)
+	}
 
-// 	if result.RowsAffected() == 0 {
-// 		return ErrSubscriptionNotFound
-// 	}
+	if result.RowsAffected() == 0 {
+		return ErrTaskNotFound
+	}
 
-// 	return nil
-// }
+	return nil
+}

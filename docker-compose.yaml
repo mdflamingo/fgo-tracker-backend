@@ -23,7 +23,7 @@ services:
 
   app:
     build: .
-    container_name: fmgo-backend
+    container_name: fmgo-tracker-backend
     env_file:
       - .env
     environment:
@@ -40,3 +40,13 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+
+  frontend:
+    image: 17723701676/fmgo-tracker-frontend:latest
+    container_name: fmgo-tracker-frontend
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: always
+    ports:
+      - 3000:80

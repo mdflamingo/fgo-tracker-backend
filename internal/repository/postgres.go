@@ -295,15 +295,21 @@ func (d *DBStorage) GetList() ([]model.TaskListResponse, error) {
 	return tasksList, nil
 }
 
-func (d *DBStorage) Update(taskID uuid.UUID, task model.TaskUpdateRequest) error {
+func (d *DBStorage) Update(taskID uuid.UUID, task model.TaskUpdate, userTasks []model.TaskUserCreate) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	result, err := d.pool.Exec(ctx,
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	result, err := tx.Exec(ctx,
 		`UPDATE task
-			SET id = $1, name = $2, description = $3, status = $4, priority = $5, project_id = $6, deadline = $7, completed_at = $8
-		WHERE id = $9`,
-		taskID, task.Name, task.Description, task.Status, task.Priority, task.ProjectId, task.Deadline, task.CompletedAt, taskID)
+			SET name = $1, description = $2, status = $3, priority = $4, project_id = $5, deadline = $6, completed_at = $7
+		WHERE id = $8`,
+		task.Name, task.Description, task.Status, task.Priority, task.ProjectId, task.Deadline, task.CompletedAt, taskID)
 
 	if err != nil {
 		return fmt.Errorf("failed to update task: %w", err)
@@ -311,6 +317,42 @@ func (d *DBStorage) Update(taskID uuid.UUID, task model.TaskUpdateRequest) error
 
 	if result.RowsAffected() == 0 {
 		return ErrTaskNotFound
+	}
+
+	_, err = tx.Exec(ctx, `DELETE FROM user_task WHERE task_id = $1`, taskID)
+	if err != nil {
+		return fmt.Errorf("failed to delete user tasks: %w", err)
+	}
+
+	if len(userTasks) > 0 {
+		ids := make([]uuid.UUID, len(userTasks))
+		taskIDs := make([]uuid.UUID, len(userTasks))
+		userIDs := make([]uuid.UUID, len(userTasks))
+		roles := make([]string, len(userTasks))
+
+		for i, ut := range userTasks {
+			ids[i] = ut.Id
+			taskIDs[i] = taskID
+			userIDs[i] = ut.UserId
+			roles[i] = string(ut.Role)
+		}
+
+		_, err = tx.Exec(ctx,
+			`INSERT INTO user_task (id, task_id, user_id, role)
+			 SELECT
+				unnest($1::uuid[]),
+				unnest($2::uuid[]),
+				unnest($3::uuid[]),
+				unnest($4::task_role[])`,
+			ids, taskIDs, userIDs, roles,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to save user tasks: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil

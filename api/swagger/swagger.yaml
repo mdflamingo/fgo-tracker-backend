@@ -137,13 +137,21 @@ definitions:
     - TaskStatusDone
   model.TaskUpdateRequest:
     properties:
-      assigned_id:
-        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
-        type: string
+      assigned_ids:
+        items:
+          type: string
+        type: array
       completed_at:
         example: "2025-07-01T00:00:00Z"
         type: string
+      creator_id:
+        description: AssignedId  uuid.UUID    `json:"assigned_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba"
+          description:"User id with role assignee"`
+        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        type: string
       deadline:
+        description: ReviewerId  uuid.UUID    `json:"reviewer_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba"
+          description:"User id with role reviewer"`
         example: "2025-07-01T00:00:00Z"
         type: string
       description:
@@ -159,15 +167,14 @@ definitions:
       project_id:
         example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
         type: string
-      reviewer_id:
-        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
-        type: string
+      reviewer_ids:
+        items:
+          type: string
+        type: array
       status:
         allOf:
         - $ref: '#/definitions/model.TaskStatus'
         example: backlog
-    required:
-    - deadline
     type: object
   model.UserDB:
     properties:
@@ -293,11 +300,9 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/model.TaskUpdateRequest'
-      produces:
-      - application/json
       responses:
         "200":
-          description: Successful task update"s
+          description: Task updated successfully
           schema:
             type: string
         "400":

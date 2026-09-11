@@ -151,9 +151,6 @@ const docTemplate = `{
                 "consumes": [
                     "application/json"
                 ],
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "Task"
                 ],
@@ -178,7 +175,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful task update\"s",
+                        "description": "Task updated successfully",
                         "schema": {
                             "type": "string"
                         }
@@ -450,19 +447,24 @@ const docTemplate = `{
         },
         "model.TaskUpdateRequest": {
             "type": "object",
-            "required": [
-                "deadline"
-            ],
             "properties": {
-                "assigned_id": {
-                    "type": "string",
-                    "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                "assigned_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "completed_at": {
                     "type": "string",
                     "example": "2025-07-01T00:00:00Z"
                 },
+                "creator_id": {
+                    "description": "AssignedId  uuid.UUID    ` + "`" + `json:\"assigned_id\" example:\"60601fee-2bf1-4721-ae6f-7636e79a0cba\" description:\"User id with role assignee\"` + "`" + `",
+                    "type": "string",
+                    "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                },
                 "deadline": {
+                    "description": "ReviewerId  uuid.UUID    ` + "`" + `json:\"reviewer_id\" example:\"60601fee-2bf1-4721-ae6f-7636e79a0cba\" description:\"User id with role reviewer\"` + "`" + `",
                     "type": "string",
                     "example": "2025-07-01T00:00:00Z"
                 },
@@ -486,9 +488,11 @@ const docTemplate = `{
                     "type": "string",
                     "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
                 },
-                "reviewer_id": {
-                    "type": "string",
-                    "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                "reviewer_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "status": {
                     "allOf": [

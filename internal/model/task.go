@@ -49,10 +49,13 @@ type TaskUpdateRequest struct {
 	Status      TaskStatus   `json:"status" example:"backlog" description:"Task status"`
 	Priority    TaskPriority `json:"priority" example:"medium" description:"Task priority"`
 	ProjectId   uuid.UUID    `json:"project_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"Project id"`
-	AssignedId  uuid.UUID    `json:"assigned_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"User id with role assignee"`
-	ReviewerId  uuid.UUID    `json:"reviewer_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"User id with role reviewer"`
-	Deadline    time.Time    `json:"deadline" example:"2025-07-01T00:00:00Z" description:"Deadline date" validate:"required"`
-	CompletedAt time.Time    `json:"completed_at" example:"2025-07-01T00:00:00Z" description:"Completed date"`
+	// AssignedId  uuid.UUID    `json:"assigned_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"User id with role assignee"`
+	CreatorId uuid.UUID `json:"creator_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"User id with role creator"`
+	// ReviewerId  uuid.UUID    `json:"reviewer_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"User id with role reviewer"`
+	Deadline    *time.Time   `json:"deadline" example:"2025-07-01T00:00:00Z" description:"Deadline date"`
+	CompletedAt *time.Time   `json:"completed_at" example:"2025-07-01T00:00:00Z" description:"Completed date"`
+	AssignedIds *[]uuid.UUID `json:"assigned_ids"`
+	ReviewerIds *[]uuid.UUID `json:"reviewer_ids"`
 }
 
 type TaskCreateResponse struct {
@@ -91,6 +94,17 @@ type TaskCreate struct {
 	Priority    TaskPriority
 	ProjectId   uuid.UUID
 	Deadline    time.Time
+}
+
+type TaskUpdate struct {
+	Id          uuid.UUID
+	Name        string
+	Description string
+	Status      TaskStatus
+	Priority    TaskPriority
+	ProjectId   uuid.UUID
+	Deadline    *time.Time
+	CompletedAt *time.Time
 }
 
 type TaskUserCreate struct {

@@ -29,7 +29,7 @@ func NewTaskService(repo *repository.DBStorage) *TaskService {
 // @Tags Tasks
 // @Produce json
 // @Success 200 {array} model.TaskListResponse "Tasks"
-// @Failure 204 {string} string "Tasks not found"
+// @Failure 404 {string} string "Tasks not found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/task/list [get]
 func (s *TaskService) GetList(w http.ResponseWriter, r *http.Request) {

@@ -53,13 +53,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/service.ResponseError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/service.ResponseError"
                         }
                     }
                 }
@@ -85,16 +85,10 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "204": {
-                        "description": "Tasks not found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/service.ResponseError"
                         }
                     }
                 }
@@ -129,19 +123,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid task ID",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/service.ResponseError"
                         }
                     },
                     "404": {
                         "description": "Task not found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/service.ResponseError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/service.ResponseError"
                         }
                     }
                 }
@@ -175,27 +169,24 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Task updated successfully",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "OK"
                     },
                     "400": {
-                        "description": "Invalid task ID",
+                        "description": "Invalid request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/service.ResponseError"
                         }
                     },
                     "404": {
                         "description": "Task not found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/service.ResponseError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/service.ResponseError"
                         }
                     }
                 }
@@ -217,27 +208,24 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful task deletion",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Invalid task ID",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/service.ResponseError"
                         }
                     },
                     "404": {
                         "description": "Task not found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/service.ResponseError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/service.ResponseError"
                         }
                     }
                 }
@@ -459,12 +447,10 @@ const docTemplate = `{
                     "example": "2025-07-01T00:00:00Z"
                 },
                 "creator_id": {
-                    "description": "AssignedId  uuid.UUID    ` + "`" + `json:\"assigned_id\" example:\"60601fee-2bf1-4721-ae6f-7636e79a0cba\" description:\"User id with role assignee\"` + "`" + `",
                     "type": "string",
                     "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
                 },
                 "deadline": {
-                    "description": "ReviewerId  uuid.UUID    ` + "`" + `json:\"reviewer_id\" example:\"60601fee-2bf1-4721-ae6f-7636e79a0cba\" description:\"User id with role reviewer\"` + "`" + `",
                     "type": "string",
                     "example": "2025-07-01T00:00:00Z"
                 },
@@ -514,6 +500,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "service.ResponseError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "error": {
                     "type": "string"
                 }
             }

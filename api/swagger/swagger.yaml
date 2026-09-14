@@ -145,13 +145,9 @@ definitions:
         example: "2025-07-01T00:00:00Z"
         type: string
       creator_id:
-        description: AssignedId  uuid.UUID    `json:"assigned_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba"
-          description:"User id with role assignee"`
         example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
         type: string
       deadline:
-        description: ReviewerId  uuid.UUID    `json:"reviewer_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba"
-          description:"User id with role reviewer"`
         example: "2025-07-01T00:00:00Z"
         type: string
       description:
@@ -183,6 +179,13 @@ definitions:
       id:
         type: string
       username:
+        type: string
+    type: object
+  service.ResponseError:
+    properties:
+      code:
+        type: integer
+      error:
         type: string
     type: object
 host: localhost:8080
@@ -217,11 +220,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/service.ResponseError'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/service.ResponseError'
       summary: Create new task
       tags:
       - Tasks
@@ -236,21 +239,19 @@ paths:
         type: string
       responses:
         "200":
-          description: Successful task deletion
-          schema:
-            type: string
+          description: OK
         "400":
           description: Invalid task ID
           schema:
-            type: string
+            $ref: '#/definitions/service.ResponseError'
         "404":
           description: Task not found
           schema:
-            type: string
+            $ref: '#/definitions/service.ResponseError'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/service.ResponseError'
       summary: Delete task
       tags:
       - Tasks
@@ -272,15 +273,15 @@ paths:
         "400":
           description: Invalid task ID
           schema:
-            type: string
+            $ref: '#/definitions/service.ResponseError'
         "404":
           description: Task not found
           schema:
-            type: string
+            $ref: '#/definitions/service.ResponseError'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/service.ResponseError'
       summary: Get task by ID
       tags:
       - Tasks
@@ -302,21 +303,19 @@ paths:
           $ref: '#/definitions/model.TaskUpdateRequest'
       responses:
         "200":
-          description: Task updated successfully
-          schema:
-            type: string
+          description: OK
         "400":
-          description: Invalid task ID
+          description: Invalid request
           schema:
-            type: string
+            $ref: '#/definitions/service.ResponseError'
         "404":
           description: Task not found
           schema:
-            type: string
+            $ref: '#/definitions/service.ResponseError'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/service.ResponseError'
       summary: Task update
       tags:
       - Task
@@ -332,14 +331,10 @@ paths:
             items:
               $ref: '#/definitions/model.TaskListResponse'
             type: array
-        "204":
-          description: Tasks not found
-          schema:
-            type: string
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/service.ResponseError'
       summary: Get all tasks
       tags:
       - Tasks

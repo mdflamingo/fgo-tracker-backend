@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
 	"github.com/google/uuid"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/logger"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/model"
@@ -29,33 +30,19 @@ func NewTaskService(repo *repository.DBStorage) *TaskService {
 // @Tags Tasks
 // @Produce json
 // @Success 200 {array} model.TaskListResponse "Tasks"
-// @Failure 404 {string} string "Tasks not found"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 500 {object} ResponseError "Internal Server Error"
 // @Router /api/task/list [get]
 func (s *TaskService) GetList(w http.ResponseWriter, r *http.Request) {
 	tasks, err := s.repo.GetList()
 	if err != nil {
 		logger.Log.Error("failed to get tasks", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+		ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
 
-	if len(tasks) == 0 {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	respJSON, err := json.Marshal(tasks)
-	if err != nil {
-		logger.Log.Error("failed to marshal response to JSON", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(respJSON)
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, tasks)
 }
 
 // @Summary Get task by ID
@@ -64,40 +51,32 @@ func (s *TaskService) GetList(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path string true "UUID"
 // @Success 200 {object} model.TaskResponse "Task found"
-// @Failure 400 {string} string "Invalid task ID"
-// @Failure 404 {string} string "Task not found"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} ResponseError "Invalid task ID"
+// @Failure 404 {object} ResponseError "Task not found"
+// @Failure 500 {object} ResponseError "Internal Server Error"
 // @Router /api/task/{id} [get]
 func (s *TaskService) GetTask(w http.ResponseWriter, r *http.Request) {
 	taskID, err := parseTaskID(r)
 	if err != nil {
 		logger.Log.Warn("invalid task ID", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		ResponseWithError(w, r, http.StatusBadRequest, "invalid task ID")
 		return
 	}
 
 	task, err := s.repo.GetOne(taskID)
 	if err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
-			logger.Log.Error("task not found", zap.Error(err))
-			w.WriteHeader(http.StatusNotFound)
+			logger.Log.Warn("task not found", zap.String("task_id", taskID.String()))
+			ResponseWithError(w, r, http.StatusNotFound, http.StatusText(http.StatusNotFound))
 			return
 		}
 		logger.Log.Error("failed to get task", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
 
-	respJSON, err := json.Marshal(task)
-	if err != nil {
-		logger.Log.Error("failed to marshal response to JSON", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(respJSON)
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, task)
 }
 
 // @Summary Task update
@@ -106,30 +85,30 @@ func (s *TaskService) GetTask(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Param id path string true "UUID"
 // @Param request body model.TaskUpdateRequest true "Data for update"
-// @Success 200 {string} string "Task updated successfully"
-// @Failure 400 {string} string "Invalid task ID"
-// @Failure 404 {string} string "Task not found"
-// @Failure 500 {string} string "Internal Server Error"
+// @Success 200
+// @Failure 400 {object} ResponseError "Invalid request"
+// @Failure 404 {object} ResponseError "Task not found"
+// @Failure 500 {object} ResponseError "Internal Server Error"
 // @Router /api/task/{id} [put]
 func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		logger.Log.Error("failed to read request body", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		ResponseWithError(w, r, http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
 
 	var inputUpdateTask model.TaskUpdateRequest
 	if err := json.Unmarshal(body, &inputUpdateTask); err != nil {
-		logger.Log.Warn("invalid request body", zap.Error(err))
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		logger.Log.Error("invalid request body", zap.Error(err))
+		ResponseWithError(w, r, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	taskID, err := parseTaskID(r)
 	if err != nil {
-		logger.Log.Warn("invalid task ID", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		logger.Log.Error("invalid task ID", zap.Error(err))
+		ResponseWithError(w, r, http.StatusBadRequest, "invalid task ID")
 		return
 	}
 
@@ -137,11 +116,11 @@ func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
 			logger.Log.Warn("task not found", zap.String("task_id", taskID.String()))
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			ResponseWithError(w, r, http.StatusNotFound, http.StatusText(http.StatusNotFound))
 			return
 		}
 		logger.Log.Error("failed to get task", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
 
@@ -225,15 +204,15 @@ func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
 			logger.Log.Warn("task not found during update", zap.String("task_id", taskID.String()))
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			ResponseWithError(w, r, http.StatusNotFound, http.StatusText(http.StatusNotFound))
 			return
 		}
 		logger.Log.Error("failed to update task", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	render.Status(r, http.StatusOK)
 }
 
 // @Summary Create new task
@@ -243,8 +222,8 @@ func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param request body model.TaskCreateRequest true "Task data"
 // @Success 201 {object} model.TaskCreateResponse "Created task ID"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} ResponseError "Bad Request"
+// @Failure 500 {object} ResponseError "Internal Server Error"
 // @Router /api/task [post]
 func (s *TaskService) CreateTask(w http.ResponseWriter, r *http.Request) {
 	// creatorID := mustNewUUIDV7()
@@ -253,14 +232,14 @@ func (s *TaskService) CreateTask(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		logger.Log.Error("failed to read request body", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		ResponseWithError(w, r, http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
 
 	var inputTask model.TaskCreateRequest
 	if err := json.Unmarshal(body, &inputTask); err != nil {
 		logger.Log.Warn("invalid request body", zap.Error(err))
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		ResponseWithError(w, r, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
@@ -312,57 +291,48 @@ func (s *TaskService) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	err = s.repo.Create(createTask, createUserTasks)
 	if err != nil {
-		logger.Log.Error(err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		logger.Log.Error("failed to create task", zap.Error(err))
+		ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
 
 	resp := model.TaskCreateResponse{ID: createdTaskID}
-	respJSON, err := json.Marshal(resp)
-	if err != nil {
-		logger.Log.Error("failed to marshal response", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
 
-	_, _ = w.Write(respJSON)
+	render.Status(r, http.StatusCreated)
+	render.JSON(w, r, resp)
 }
 
 // @Summary Delete task
 // @Description Delete task by ID
 // @Tags Tasks
 // @Param id path string true "UUID"
-// @Success 200 {string} string "Successful task deletion"
-// @Failure 400 {string} string "Invalid task ID"
-// @Failure 404 {string} string "Task not found"
-// @Failure 500 {string} string "Internal Server Error"
+// @Success 200
+// @Failure 400 {object} ResponseError "Invalid task ID"
+// @Failure 404 {object} ResponseError "Task not found"
+// @Failure 500 {object} ResponseError "Internal Server Error"
 // @Router /api/task/{id} [delete]
 func (s *TaskService) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	taskID, err := parseTaskID(r)
 	if err != nil {
 		logger.Log.Warn("invalid task ID", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		ResponseWithError(w, r, http.StatusBadRequest, "invalid task ID")
 		return
 	}
 
 	err = s.repo.Delete(taskID)
 	if err != nil {
 		if errors.Is(err, repository.ErrTaskNotFound) {
-			logger.Log.Error("task not found", zap.Error(err))
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			logger.Log.Warn("task not found", zap.String("task_id", taskID.String()))
+			ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 			return
 		} else {
 			logger.Log.Error("failed to delete task", zap.Error(err))
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 			return
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	render.Status(r, http.StatusOK)
 }
 
 func parseTaskID(r *http.Request) (uuid.UUID, error) {

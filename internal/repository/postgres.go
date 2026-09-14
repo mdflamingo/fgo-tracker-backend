@@ -280,7 +280,8 @@ func (d *DBStorage) GetList() ([]model.TaskListResponse, error) {
 	}
 	defer rows.Close()
 
-	var tasksList []model.TaskListResponse
+	tasksList := make([]model.TaskListResponse, 0)
+
 	for rows.Next() {
 		var task model.TaskListResponse
 		if err := rows.Scan(&task.Id, &task.Name, &task.Description, &task.Status, &task.Priority, &task.ProjectName); err != nil {

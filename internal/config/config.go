@@ -21,7 +21,7 @@ func ParseFlags() *Config {
 
 	flag.Parse()
 
-	cfg.RunAddr = getEnvOrDefault("RUN_ADDRESS", *RunAddr)
+	cfg.RunAddr = getEnvOrDefault("RUN_ADDR", *RunAddr)
 	cfg.LogLevel = strings.ToUpper(getEnvOrDefault("LOG_LEVEL", *logLevel))
 	cfg.DataBaseDSN = getEnvOrDefault("DATABASE_DSN", *dataBaseDSN)
 

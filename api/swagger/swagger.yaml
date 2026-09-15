@@ -17,13 +17,20 @@ definitions:
         type: string
       description:
         example: Some description
+        maxLength: 1000
         type: string
       name:
         example: Update user table
+        maxLength: 255
         type: string
       priority:
         allOf:
         - $ref: '#/definitions/model.TaskPriority'
+        enum:
+        - low
+        - medium
+        - high
+        - critical
         example: medium
       project_id:
         example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
@@ -34,16 +41,15 @@ definitions:
       status:
         allOf:
         - $ref: '#/definitions/model.TaskStatus'
+        enum:
+        - backlog
+        - in_progress
+        - review
+        - done
         example: backlog
     required:
-    - assigned_id
-    - deadline
-    - description
     - name
-    - priority
     - project_id
-    - reviewer_id
-    - status
     type: object
   model.TaskCreateResponse:
     properties:
@@ -144,21 +150,27 @@ definitions:
       completed_at:
         example: "2025-07-01T00:00:00Z"
         type: string
-      creator_id:
-        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
-        type: string
       deadline:
+        description: CreatorId   uuid.UUID    `json:"creator_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba"
+          description:"User id with role creator" validate:"required,uuid"`
         example: "2025-07-01T00:00:00Z"
         type: string
       description:
         example: Some description
+        maxLength: 1000
         type: string
       name:
         example: Update user table
+        maxLength: 255
         type: string
       priority:
         allOf:
         - $ref: '#/definitions/model.TaskPriority'
+        enum:
+        - low
+        - medium
+        - high
+        - critical
         example: medium
       project_id:
         example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
@@ -170,7 +182,15 @@ definitions:
       status:
         allOf:
         - $ref: '#/definitions/model.TaskStatus'
+        enum:
+        - backlog
+        - in_progress
+        - review
+        - done
         example: backlog
+    required:
+    - name
+    - project_id
     type: object
   model.UserDB:
     properties:

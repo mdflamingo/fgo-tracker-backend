@@ -247,14 +247,8 @@ const docTemplate = `{
         "model.TaskCreateRequest": {
             "type": "object",
             "required": [
-                "assigned_id",
-                "deadline",
-                "description",
                 "name",
-                "priority",
-                "project_id",
-                "reviewer_id",
-                "status"
+                "project_id"
             ],
             "properties": {
                 "assigned_id": {
@@ -267,13 +261,21 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string",
+                    "maxLength": 1000,
                     "example": "Some description"
                 },
                 "name": {
                     "type": "string",
+                    "maxLength": 255,
                     "example": "Update user table"
                 },
                 "priority": {
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        "critical"
+                    ],
                     "allOf": [
                         {
                             "$ref": "#/definitions/model.TaskPriority"
@@ -290,6 +292,12 @@ const docTemplate = `{
                     "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
                 },
                 "status": {
+                    "enum": [
+                        "backlog",
+                        "in_progress",
+                        "review",
+                        "done"
+                    ],
                     "allOf": [
                         {
                             "$ref": "#/definitions/model.TaskStatus"
@@ -435,6 +443,10 @@ const docTemplate = `{
         },
         "model.TaskUpdateRequest": {
             "type": "object",
+            "required": [
+                "name",
+                "project_id"
+            ],
             "properties": {
                 "assigned_ids": {
                     "type": "array",
@@ -446,23 +458,28 @@ const docTemplate = `{
                     "type": "string",
                     "example": "2025-07-01T00:00:00Z"
                 },
-                "creator_id": {
-                    "type": "string",
-                    "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
-                },
                 "deadline": {
+                    "description": "CreatorId   uuid.UUID    ` + "`" + `json:\"creator_id\" example:\"60601fee-2bf1-4721-ae6f-7636e79a0cba\" description:\"User id with role creator\" validate:\"required,uuid\"` + "`" + `",
                     "type": "string",
                     "example": "2025-07-01T00:00:00Z"
                 },
                 "description": {
                     "type": "string",
+                    "maxLength": 1000,
                     "example": "Some description"
                 },
                 "name": {
                     "type": "string",
+                    "maxLength": 255,
                     "example": "Update user table"
                 },
                 "priority": {
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        "critical"
+                    ],
                     "allOf": [
                         {
                             "$ref": "#/definitions/model.TaskPriority"
@@ -481,6 +498,12 @@ const docTemplate = `{
                     }
                 },
                 "status": {
+                    "enum": [
+                        "backlog",
+                        "in_progress",
+                        "review",
+                        "done"
+                    ],
                     "allOf": [
                         {
                             "$ref": "#/definitions/model.TaskStatus"

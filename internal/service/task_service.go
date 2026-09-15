@@ -129,21 +129,7 @@ func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		projectID = existingTask.Project.Id
 	}
 
-	creatorID := inputUpdateTask.CreatorId
-	if creatorID == uuid.Nil {
-		creatorID = existingTask.Creator.Id
-	}
-
 	var updateUserTasks []model.TaskUserCreate
-
-	if creatorID != uuid.Nil {
-		updateUserTasks = append(updateUserTasks, model.TaskUserCreate{
-			Id:        mustNewUUIDV7(),
-			UserId:    creatorID,
-			ProjectId: projectID,
-			Role:      model.TaskCreator,
-		})
-	}
 
 	if inputUpdateTask.AssignedIds == nil {
 		for _, assignee := range existingTask.Assignees {

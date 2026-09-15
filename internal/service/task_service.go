@@ -12,16 +12,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/logger"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/model"
-	"github.com/mdflamingo/fgo-tracker-backend/internal/repository"
+	pg "github.com/mdflamingo/fgo-tracker-backend/internal/repository/postgres"
 
 	"go.uber.org/zap"
 )
 
 type TaskService struct {
-	repo *repository.DBStorage
+	repo *pg.DBStorage
 }
 
-func NewTaskService(repo *repository.DBStorage) *TaskService {
+func NewTaskService(repo *pg.DBStorage) *TaskService {
 	return &TaskService{repo: repo}
 }
 
@@ -65,7 +65,7 @@ func (s *TaskService) GetTask(w http.ResponseWriter, r *http.Request) {
 
 	task, err := s.repo.GetOne(taskID)
 	if err != nil {
-		if errors.Is(err, repository.ErrTaskNotFound) {
+		if errors.Is(err, pg.ErrTaskNotFound) {
 			logger.Log.Warn("task not found", zap.String("task_id", taskID.String()))
 			ResponseWithError(w, r, http.StatusNotFound, http.StatusText(http.StatusNotFound))
 			return
@@ -114,7 +114,7 @@ func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	existingTask, err := s.repo.GetOne(taskID)
 	if err != nil {
-		if errors.Is(err, repository.ErrTaskNotFound) {
+		if errors.Is(err, pg.ErrTaskNotFound) {
 			logger.Log.Warn("task not found", zap.String("task_id", taskID.String()))
 			ResponseWithError(w, r, http.StatusNotFound, http.StatusText(http.StatusNotFound))
 			return
@@ -188,7 +188,7 @@ func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	err = s.repo.Update(taskID, updateTask, updateUserTasks)
 	if err != nil {
-		if errors.Is(err, repository.ErrTaskNotFound) {
+		if errors.Is(err, pg.ErrTaskNotFound) {
 			logger.Log.Warn("task not found during update", zap.String("task_id", taskID.String()))
 			ResponseWithError(w, r, http.StatusNotFound, http.StatusText(http.StatusNotFound))
 			return
@@ -307,7 +307,7 @@ func (s *TaskService) DeleteTask(w http.ResponseWriter, r *http.Request) {
 
 	err = s.repo.Delete(taskID)
 	if err != nil {
-		if errors.Is(err, repository.ErrTaskNotFound) {
+		if errors.Is(err, pg.ErrTaskNotFound) {
 			logger.Log.Warn("task not found", zap.String("task_id", taskID.String()))
 			ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 			return

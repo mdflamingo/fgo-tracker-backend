@@ -6,17 +6,20 @@ import (
 	_ "github.com/mdflamingo/fgo-tracker-backend/api/swagger"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/config"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/logger"
-	"github.com/mdflamingo/fgo-tracker-backend/internal/repository"
+	pg "github.com/mdflamingo/fgo-tracker-backend/internal/repository/postgres"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/service"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func NewRouter(conf *config.Config, storage *repository.DBStorage) *chi.Mux {
+func NewRouter(conf *config.Config, storage *pg.DBStorage) *chi.Mux {
 	r := chi.NewRouter()
 
 	taskService := service.NewTaskService(storage)
+
+	r.Use(middleware.Recoverer)
 	r.Use(logger.RequestLogger)
 
 	// // Swagger documentation

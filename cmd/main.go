@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"log"
 	"net/http"
 
@@ -9,7 +8,7 @@ import (
 	"github.com/mdflamingo/fgo-tracker-backend/internal/config"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/handler"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/logger"
-	"github.com/mdflamingo/fgo-tracker-backend/internal/repository"
+	pg "github.com/mdflamingo/fgo-tracker-backend/internal/repository/postgres"
 	"go.uber.org/zap"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -39,7 +38,7 @@ func run(conf *config.Config) error {
 
 	logger.Log.Info("Running server", zap.String("address", conf.RunAddr))
 
-	storage, err := initStorage(conf)
+	storage, err := pg.InitStorage(conf)
 	if err != nil {
 		logger.Log.Fatal("Failed to create storage", zap.Error(err))
 	}
@@ -48,20 +47,4 @@ func run(conf *config.Config) error {
 	r := handler.NewRouter(conf, storage)
 
 	return http.ListenAndServe(conf.RunAddr, r)
-}
-
-func initStorage(conf *config.Config) (*repository.DBStorage, error) {
-	if conf.DataBaseDSN == "" {
-		return nil, errors.New("DATABASE_DSN is required")
-	}
-
-	logger.Log.Info("Attempting to use database storage", zap.String("dsn", conf.DataBaseDSN))
-	storage, err := repository.NewDBStorage(conf.DataBaseDSN)
-	if err != nil {
-		logger.Log.Warn("Failed to initialize database storage", zap.Error(err))
-		return nil, err
-	}
-
-	logger.Log.Info("Successfully initialized database storage")
-	return storage, nil
 }

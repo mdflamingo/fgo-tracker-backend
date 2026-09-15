@@ -18,6 +18,7 @@ func NewRouter(conf *config.Config, storage *pg.DBStorage) *chi.Mux {
 	r := chi.NewRouter()
 
 	taskService := service.NewTaskService(storage)
+	taskHandler := NewTaskHandler(taskService)
 
 	r.Use(middleware.Recoverer)
 	r.Use(logger.RequestLogger)
@@ -32,19 +33,19 @@ func NewRouter(conf *config.Config, storage *pg.DBStorage) *chi.Mux {
 
 	r.Group(func(r chi.Router) {
 		r.Post("/api/task", func(w http.ResponseWriter, r *http.Request) {
-			taskService.CreateTask(w, r)
+			taskHandler.CreateTask(w, r)
 		})
 		r.Get("/api/task/list", func(w http.ResponseWriter, r *http.Request) {
-			taskService.GetList(w, r)
+			taskHandler.GetList(w, r)
 		})
 		r.Get("/api/task/{id}", func(w http.ResponseWriter, r *http.Request) {
-			taskService.GetTask(w, r)
+			taskHandler.GetTask(w, r)
 		})
 		r.Put("/api/task/{id}", func(w http.ResponseWriter, r *http.Request) {
-			taskService.UpdateTask(w, r)
+			taskHandler.UpdateTask(w, r)
 		})
 		r.Delete("/api/task/{id}", func(w http.ResponseWriter, r *http.Request) {
-			taskService.DeleteTask(w, r)
+			taskHandler.DeleteTask(w, r)
 		})
 	})
 

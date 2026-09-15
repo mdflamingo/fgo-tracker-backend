@@ -9,6 +9,7 @@ import (
 	"github.com/mdflamingo/fgo-tracker-backend/internal/handler"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/logger"
 	pg "github.com/mdflamingo/fgo-tracker-backend/internal/repository/postgres"
+	"github.com/mdflamingo/fgo-tracker-backend/internal/validator"
 	"go.uber.org/zap"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -35,6 +36,8 @@ func run(conf *config.Config) error {
 	if err := logger.Initialize(conf.LogLevel); err != nil {
 		return err
 	}
+
+	validator.Init()
 
 	logger.Log.Info("Running server", zap.String("address", conf.RunAddr))
 

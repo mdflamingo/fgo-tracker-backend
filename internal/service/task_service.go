@@ -1,19 +1,14 @@
 package service
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	"github.com/google/uuid"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/logger"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/model"
 	pg "github.com/mdflamingo/fgo-tracker-backend/internal/repository/postgres"
-
 	"go.uber.org/zap"
 )
 
@@ -25,126 +20,105 @@ func NewTaskService(repo *pg.DBStorage) *TaskService {
 	return &TaskService{repo: repo}
 }
 
-// @Summary Get all tasks
-// @Description Return all tasks in system
-// @Tags Tasks
-// @Produce json
-// @Success 200 {array} model.TaskListResponse "Tasks"
-// @Failure 500 {object} ResponseError "Internal Server Error"
-// @Router /api/task/list [get]
-func (s *TaskService) GetList(w http.ResponseWriter, r *http.Request) {
+func (s *TaskService) GetList() ([]model.TaskListResponse, error) {
 	tasks, err := s.repo.GetList()
 	if err != nil {
-		logger.Log.Error("failed to get tasks", zap.Error(err))
-
-		ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
-		return
+		logger.Log.Error("failed to get tasks list", zap.Error(err))
+		return nil, fmt.Errorf("TaskService.GetList: %w", err)
 	}
-
-	render.Status(r, http.StatusOK)
-	render.JSON(w, r, tasks)
+	return tasks, nil
 }
 
-// @Summary Get task by ID
-// @Description Returns information about a specific task
-// @Tags Tasks
-// @Produce json
-// @Param id path string true "UUID"
-// @Success 200 {object} model.TaskResponse "Task found"
-// @Failure 400 {object} ResponseError "Invalid task ID"
-// @Failure 404 {object} ResponseError "Task not found"
-// @Failure 500 {object} ResponseError "Internal Server Error"
-// @Router /api/task/{id} [get]
-func (s *TaskService) GetTask(w http.ResponseWriter, r *http.Request) {
-	taskID, err := parseTaskID(r)
-	if err != nil {
-		logger.Log.Warn("invalid task ID", zap.Error(err))
-		ResponseWithError(w, r, http.StatusBadRequest, "invalid task ID")
-		return
-	}
-
+func (s *TaskService) GetTask(taskID uuid.UUID) (*model.TaskResponse, error) {
 	task, err := s.repo.GetOne(taskID)
 	if err != nil {
 		if errors.Is(err, pg.ErrTaskNotFound) {
-			logger.Log.Warn("task not found", zap.String("task_id", taskID.String()))
-			ResponseWithError(w, r, http.StatusNotFound, http.StatusText(http.StatusNotFound))
-			return
+			return nil, fmt.Errorf("TaskService.GetTask: %w", err)
 		}
-		logger.Log.Error("failed to get task", zap.Error(err))
-		ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
-		return
+		logger.Log.Error("failed to get task", zap.String("task_id", taskID.String()), zap.Error(err))
+		return nil, fmt.Errorf("TaskService.GetTask: %w", err)
 	}
-
-	render.Status(r, http.StatusOK)
-	render.JSON(w, r, task)
+	return &task, nil
 }
 
-// @Summary Task update
-// @Description Updates information about the existing task
-// @Tags Task
-// @Accept json
-// @Param id path string true "UUID"
-// @Param request body model.TaskUpdateRequest true "Data for update"
-// @Success 200
-// @Failure 400 {object} ResponseError "Invalid request"
-// @Failure 404 {object} ResponseError "Task not found"
-// @Failure 500 {object} ResponseError "Internal Server Error"
-// @Router /api/task/{id} [put]
-func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		logger.Log.Error("failed to read request body", zap.Error(err))
-		ResponseWithError(w, r, http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
-		return
+func (s *TaskService) CreateTask(req model.TaskCreateRequest, creatorID uuid.UUID) (model.TaskCreateResponse, error) {
+	taskID := generateUUIDv7()
+
+	createTask := model.TaskCreate{
+		Id:          taskID,
+		Name:        req.Name,
+		Description: req.Description,
+		Status:      req.Status,
+		Priority:    req.Priority,
+		ProjectId:   req.ProjectId,
+		Deadline:    req.Deadline,
 	}
 
-	var inputUpdateTask model.TaskUpdateRequest
-	if err := json.Unmarshal(body, &inputUpdateTask); err != nil {
-		logger.Log.Error("invalid request body", zap.Error(err))
-		ResponseWithError(w, r, http.StatusBadRequest, "invalid request body")
-		return
+	var createUserTasks []model.TaskUserCreate
+
+	createUserTasks = append(createUserTasks, model.TaskUserCreate{
+		Id:        generateUUIDv7(),
+		UserId:    creatorID,
+		ProjectId: req.ProjectId,
+		Role:      model.TaskCreator,
+	})
+
+	if req.AssignedId != uuid.Nil {
+		createUserTasks = append(createUserTasks, model.TaskUserCreate{
+			Id:        generateUUIDv7(),
+			UserId:    req.AssignedId,
+			ProjectId: req.ProjectId,
+			Role:      model.TaskAssignee,
+		})
 	}
 
-	taskID, err := parseTaskID(r)
-	if err != nil {
-		logger.Log.Error("invalid task ID", zap.Error(err))
-		ResponseWithError(w, r, http.StatusBadRequest, "invalid task ID")
-		return
+	if req.ReviewerId != uuid.Nil {
+		createUserTasks = append(createUserTasks, model.TaskUserCreate{
+			Id:        generateUUIDv7(),
+			UserId:    req.ReviewerId,
+			ProjectId: req.ProjectId,
+			Role:      model.TaskReviewer,
+		})
 	}
 
+	if err := s.repo.Create(createTask, createUserTasks); err != nil {
+		logger.Log.Error("failed to create task in repo", zap.Error(err))
+		return model.TaskCreateResponse{}, fmt.Errorf("TaskService.CreateTask: %w", err)
+	}
+
+	return model.TaskCreateResponse{ID: taskID}, nil
+}
+
+func (s *TaskService) UpdateTask(ctx context.Context, taskID uuid.UUID, req model.TaskUpdateRequest) error {
 	existingTask, err := s.repo.GetOne(taskID)
 	if err != nil {
 		if errors.Is(err, pg.ErrTaskNotFound) {
-			logger.Log.Warn("task not found", zap.String("task_id", taskID.String()))
-			ResponseWithError(w, r, http.StatusNotFound, http.StatusText(http.StatusNotFound))
-			return
+			return fmt.Errorf("TaskService.UpdateTask: %w", pg.ErrTaskNotFound)
 		}
-		logger.Log.Error("failed to get task", zap.Error(err))
-		ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
-		return
+		return fmt.Errorf("TaskService.UpdateTask (get existing): %w", err)
 	}
 
-	projectID := inputUpdateTask.ProjectId
+	projectID := req.ProjectId
 	if projectID == uuid.Nil {
 		projectID = existingTask.Project.Id
 	}
 
 	var updateUserTasks []model.TaskUserCreate
 
-	if inputUpdateTask.AssignedIds == nil {
+	if req.AssignedIds == nil {
 		for _, assignee := range existingTask.Assignees {
 			updateUserTasks = append(updateUserTasks, model.TaskUserCreate{
-				Id:        mustNewUUIDV7(),
+				Id:        generateUUIDv7(),
 				UserId:    assignee.Id,
 				ProjectId: projectID,
 				Role:      model.TaskAssignee,
 			})
 		}
 	} else {
-		for _, assigneeID := range *inputUpdateTask.AssignedIds {
+		for _, assigneeID := range *req.AssignedIds {
 			if assigneeID != uuid.Nil {
 				updateUserTasks = append(updateUserTasks, model.TaskUserCreate{
-					Id:        mustNewUUIDV7(),
+					Id:        generateUUIDv7(),
 					UserId:    assigneeID,
 					ProjectId: projectID,
 					Role:      model.TaskAssignee,
@@ -153,20 +127,20 @@ func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if inputUpdateTask.ReviewerIds == nil {
+	if req.ReviewerIds == nil {
 		for _, reviewer := range existingTask.Reviewers {
 			updateUserTasks = append(updateUserTasks, model.TaskUserCreate{
-				Id:        mustNewUUIDV7(),
+				Id:        generateUUIDv7(),
 				UserId:    reviewer.Id,
 				ProjectId: projectID,
 				Role:      model.TaskReviewer,
 			})
 		}
 	} else {
-		for _, reviewerID := range *inputUpdateTask.ReviewerIds {
+		for _, reviewerID := range *req.ReviewerIds {
 			if reviewerID != uuid.Nil {
 				updateUserTasks = append(updateUserTasks, model.TaskUserCreate{
-					Id:        mustNewUUIDV7(),
+					Id:        generateUUIDv7(),
 					UserId:    reviewerID,
 					ProjectId: projectID,
 					Role:      model.TaskReviewer,
@@ -177,169 +151,39 @@ func (s *TaskService) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	updateTask := model.TaskUpdate{
 		Id:          taskID,
-		Name:        inputUpdateTask.Name,
-		Description: inputUpdateTask.Description,
-		Status:      inputUpdateTask.Status,
-		Priority:    inputUpdateTask.Priority,
+		Name:        req.Name,
+		Description: req.Description,
+		Status:      req.Status,
+		Priority:    req.Priority,
 		ProjectId:   projectID,
-		Deadline:    inputUpdateTask.Deadline,
-		CompletedAt: inputUpdateTask.CompletedAt,
+		Deadline:    req.Deadline,
+		CompletedAt: req.CompletedAt,
 	}
 
-	err = s.repo.Update(taskID, updateTask, updateUserTasks)
-	if err != nil {
+	if err := s.repo.Update(taskID, updateTask, updateUserTasks); err != nil {
+		logger.Log.Error("failed to update task in repo", zap.String("task_id", taskID.String()), zap.Error(err))
+		return fmt.Errorf("TaskService.UpdateTask: %w", err)
+	}
+
+	return nil
+}
+
+func (s *TaskService) DeleteTask(ctx context.Context, taskID uuid.UUID) error {
+	if err := s.repo.Delete(taskID); err != nil {
 		if errors.Is(err, pg.ErrTaskNotFound) {
-			logger.Log.Warn("task not found during update", zap.String("task_id", taskID.String()))
-			ResponseWithError(w, r, http.StatusNotFound, http.StatusText(http.StatusNotFound))
-			return
+			return fmt.Errorf("TaskService.DeleteTask: %w", pg.ErrTaskNotFound)
 		}
-		logger.Log.Error("failed to update task", zap.Error(err))
-		ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
-		return
+		logger.Log.Error("failed to delete task", zap.String("task_id", taskID.String()), zap.Error(err))
+		return fmt.Errorf("TaskService.DeleteTask: %w", err)
 	}
-
-	render.Status(r, http.StatusOK)
+	return nil
 }
 
-// @Summary Create new task
-// @Description Creates a new task with optional assignee and reviewer
-// @Tags Tasks
-// @Accept json
-// @Produce json
-// @Param request body model.TaskCreateRequest true "Task data"
-// @Success 201 {object} model.TaskCreateResponse "Created task ID"
-// @Failure 400 {object} ResponseError "Bad Request"
-// @Failure 500 {object} ResponseError "Internal Server Error"
-// @Router /api/task [post]
-func (s *TaskService) CreateTask(w http.ResponseWriter, r *http.Request) {
-	// creatorID := mustNewUUIDV7()
-	creatorID := uuid.MustParse("01a06bf1-8749-7cd1-884b-689d6a59f9c7") // поле будет доставваться из токена
-
-	body, err := io.ReadAll(r.Body)
+func generateUUIDv7() uuid.UUID {
+	id, err := uuid.NewV7()
 	if err != nil {
-		logger.Log.Error("failed to read request body", zap.Error(err))
-		ResponseWithError(w, r, http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
-		return
+		logger.Log.Error("failed to generate UUID v7, falling back to v4", zap.Error(err))
+		return uuid.New()
 	}
-
-	var inputTask model.TaskCreateRequest
-	if err := json.Unmarshal(body, &inputTask); err != nil {
-		logger.Log.Warn("invalid request body", zap.Error(err))
-		ResponseWithError(w, r, http.StatusBadRequest, "invalid request body")
-		return
-	}
-
-	createdTaskID := mustNewUUIDV7()
-	createTask := model.TaskCreate{
-		Id:          createdTaskID,
-		Name:        inputTask.Name,
-		Description: inputTask.Description,
-		Status:      inputTask.Status,
-		Priority:    inputTask.Priority,
-		ProjectId:   inputTask.ProjectId,
-		Deadline:    inputTask.Deadline,
-	}
-	var createUserTasks []model.TaskUserCreate
-
-	if inputTask.AssignedId != uuid.Nil {
-		createUserTasks = append(
-			createUserTasks,
-			model.TaskUserCreate{
-				Id:        mustNewUUIDV7(),
-				UserId:    inputTask.AssignedId,
-				ProjectId: inputTask.ProjectId,
-				Role:      model.TaskAssignee,
-			},
-		)
-	}
-
-	if inputTask.ReviewerId != uuid.Nil {
-		createUserTasks = append(
-			createUserTasks,
-			model.TaskUserCreate{
-				Id:        mustNewUUIDV7(),
-				UserId:    inputTask.ReviewerId,
-				ProjectId: inputTask.ProjectId,
-				Role:      model.TaskReviewer,
-			},
-		)
-	}
-
-	createUserTasks = append(
-		createUserTasks,
-		model.TaskUserCreate{
-			Id:        mustNewUUIDV7(),
-			UserId:    creatorID,
-			ProjectId: inputTask.ProjectId,
-			Role:      model.TaskCreator,
-		},
-	)
-
-	err = s.repo.Create(createTask, createUserTasks)
-	if err != nil {
-		logger.Log.Error("failed to create task", zap.Error(err))
-		ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
-		return
-	}
-
-	resp := model.TaskCreateResponse{ID: createdTaskID}
-
-	render.Status(r, http.StatusCreated)
-	render.JSON(w, r, resp)
-}
-
-// @Summary Delete task
-// @Description Delete task by ID
-// @Tags Tasks
-// @Param id path string true "UUID"
-// @Success 200
-// @Failure 400 {object} ResponseError "Invalid task ID"
-// @Failure 404 {object} ResponseError "Task not found"
-// @Failure 500 {object} ResponseError "Internal Server Error"
-// @Router /api/task/{id} [delete]
-func (s *TaskService) DeleteTask(w http.ResponseWriter, r *http.Request) {
-	taskID, err := parseTaskID(r)
-	if err != nil {
-		logger.Log.Warn("invalid task ID", zap.Error(err))
-		ResponseWithError(w, r, http.StatusBadRequest, "invalid task ID")
-		return
-	}
-
-	err = s.repo.Delete(taskID)
-	if err != nil {
-		if errors.Is(err, pg.ErrTaskNotFound) {
-			logger.Log.Warn("task not found", zap.String("task_id", taskID.String()))
-			ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
-			return
-		} else {
-			logger.Log.Error("failed to delete task", zap.Error(err))
-			ResponseWithError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
-			return
-		}
-	}
-
-	render.Status(r, http.StatusOK)
-}
-
-func parseTaskID(r *http.Request) (uuid.UUID, error) {
-	idStr := chi.URLParam(r, "id")
-	if idStr == "" {
-		return uuid.Nil, errors.New("task ID is required")
-	}
-
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("invalid task ID: %w", err)
-	}
-
-	return id, nil
-}
-
-func mustNewUUIDV7() uuid.UUID {
-	/// без uuid невозможно создать новую запись в бд
-	uuid, err := uuid.NewV7()
-	if err != nil {
-		panic("critical: failed to generate UUID: " + err.Error())
-	}
-	return uuid
+	return id
 }

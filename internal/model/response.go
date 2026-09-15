@@ -1,4 +1,4 @@
-package error
+package model
 
 import (
 	"net/http"

@@ -21,7 +21,7 @@ func NewTaskService(repo *pg.DBStorage) *TaskService {
 }
 
 func (s *TaskService) GetList() ([]model.TaskListResponse, error) {
-	tasks, err := s.repo.GetList()
+	tasks, err := s.repo.GetTaskList()
 	if err != nil {
 		logger.Log.Error("failed to get tasks list", zap.Error(err))
 		return nil, fmt.Errorf("TaskService.GetList: %w", err)
@@ -30,7 +30,7 @@ func (s *TaskService) GetList() ([]model.TaskListResponse, error) {
 }
 
 func (s *TaskService) GetTask(taskID uuid.UUID) (*model.TaskResponse, error) {
-	task, err := s.repo.GetOne(taskID)
+	task, err := s.repo.GetOneTask(taskID)
 	if err != nil {
 		if errors.Is(err, pg.ErrTaskNotFound) {
 			return nil, fmt.Errorf("TaskService.GetTask: %w", err)
@@ -57,34 +57,34 @@ func (s *TaskService) CreateTask(req model.TaskCreateRequest, creatorID uuid.UUI
 	var createUserTasks []model.TaskUserCreate
 
 	createUserTasks = append(createUserTasks, model.TaskUserCreate{
-		Id:        generateUUIDv7(),
-		UserId:    creatorID,
-		ProjectId: req.ProjectId,
-		Role:      model.TaskCreator,
+		Id:     generateUUIDv7(),
+		UserId: creatorID,
+		TaskId: taskID,
+		Role:   model.TaskCreator,
 	})
 
 	for _, assigneeID := range *req.AssignedIds {
 		if assigneeID != uuid.Nil {
 			createUserTasks = append(createUserTasks, model.TaskUserCreate{
-				Id:        generateUUIDv7(),
-				UserId:    assigneeID,
-				ProjectId: req.ProjectId,
-				Role:      model.TaskAssignee,
+				Id:     generateUUIDv7(),
+				UserId: assigneeID,
+				TaskId: taskID,
+				Role:   model.TaskAssignee,
 			})
 		}
 	}
 
 	for _, reviewerID := range *req.ReviewerIds {
 		createUserTasks = append(createUserTasks, model.TaskUserCreate{
-			Id:        generateUUIDv7(),
-			UserId:    reviewerID,
-			ProjectId: req.ProjectId,
-			Role:      model.TaskReviewer,
+			Id:     generateUUIDv7(),
+			UserId: reviewerID,
+			TaskId: taskID,
+			Role:   model.TaskReviewer,
 		})
 
 	}
 
-	if err := s.repo.Create(createTask, createUserTasks); err != nil {
+	if err := s.repo.CreateTask(createTask, createUserTasks); err != nil {
 		logger.Log.Error("failed to create task in repo", zap.Error(err))
 		return model.TaskCreateResponse{}, fmt.Errorf("TaskService.CreateTask: %w", err)
 	}
@@ -93,7 +93,7 @@ func (s *TaskService) CreateTask(req model.TaskCreateRequest, creatorID uuid.UUI
 }
 
 func (s *TaskService) UpdateTask(ctx context.Context, taskID uuid.UUID, req model.TaskUpdateRequest) error {
-	existingTask, err := s.repo.GetOne(taskID)
+	existingTask, err := s.repo.GetOneTask(taskID)
 	if err != nil {
 		if errors.Is(err, pg.ErrTaskNotFound) {
 			return fmt.Errorf("TaskService.UpdateTask: %w", pg.ErrTaskNotFound)
@@ -111,20 +111,20 @@ func (s *TaskService) UpdateTask(ctx context.Context, taskID uuid.UUID, req mode
 	if req.AssignedIds == nil {
 		for _, assignee := range existingTask.Assignees {
 			updateUserTasks = append(updateUserTasks, model.TaskUserCreate{
-				Id:        generateUUIDv7(),
-				UserId:    assignee.Id,
-				ProjectId: projectID,
-				Role:      model.TaskAssignee,
+				Id:     generateUUIDv7(),
+				UserId: assignee.Id,
+				TaskId: taskID,
+				Role:   model.TaskAssignee,
 			})
 		}
 	} else {
 		for _, assigneeID := range *req.AssignedIds {
 			if assigneeID != uuid.Nil {
 				updateUserTasks = append(updateUserTasks, model.TaskUserCreate{
-					Id:        generateUUIDv7(),
-					UserId:    assigneeID,
-					ProjectId: projectID,
-					Role:      model.TaskAssignee,
+					Id:     generateUUIDv7(),
+					UserId: assigneeID,
+					TaskId: taskID,
+					Role:   model.TaskAssignee,
 				})
 			}
 		}
@@ -133,20 +133,20 @@ func (s *TaskService) UpdateTask(ctx context.Context, taskID uuid.UUID, req mode
 	if req.ReviewerIds == nil {
 		for _, reviewer := range existingTask.Reviewers {
 			updateUserTasks = append(updateUserTasks, model.TaskUserCreate{
-				Id:        generateUUIDv7(),
-				UserId:    reviewer.Id,
-				ProjectId: projectID,
-				Role:      model.TaskReviewer,
+				Id:     generateUUIDv7(),
+				UserId: reviewer.Id,
+				TaskId: taskID,
+				Role:   model.TaskReviewer,
 			})
 		}
 	} else {
 		for _, reviewerID := range *req.ReviewerIds {
 			if reviewerID != uuid.Nil {
 				updateUserTasks = append(updateUserTasks, model.TaskUserCreate{
-					Id:        generateUUIDv7(),
-					UserId:    reviewerID,
-					ProjectId: projectID,
-					Role:      model.TaskReviewer,
+					Id:     generateUUIDv7(),
+					UserId: reviewerID,
+					TaskId: taskID,
+					Role:   model.TaskReviewer,
 				})
 			}
 		}
@@ -163,7 +163,7 @@ func (s *TaskService) UpdateTask(ctx context.Context, taskID uuid.UUID, req mode
 		CompletedAt: req.CompletedAt,
 	}
 
-	if err := s.repo.Update(taskID, updateTask, updateUserTasks); err != nil {
+	if err := s.repo.UpdateTask(taskID, updateTask, updateUserTasks); err != nil {
 		logger.Log.Error("failed to update task in repo", zap.String("task_id", taskID.String()), zap.Error(err))
 		return fmt.Errorf("TaskService.UpdateTask: %w", err)
 	}
@@ -172,7 +172,7 @@ func (s *TaskService) UpdateTask(ctx context.Context, taskID uuid.UUID, req mode
 }
 
 func (s *TaskService) DeleteTask(ctx context.Context, taskID uuid.UUID) error {
-	if err := s.repo.Delete(taskID); err != nil {
+	if err := s.repo.DeleteTask(taskID); err != nil {
 		if errors.Is(err, pg.ErrTaskNotFound) {
 			return fmt.Errorf("TaskService.DeleteTask: %w", pg.ErrTaskNotFound)
 		}
@@ -180,13 +180,4 @@ func (s *TaskService) DeleteTask(ctx context.Context, taskID uuid.UUID) error {
 		return fmt.Errorf("TaskService.DeleteTask: %w", err)
 	}
 	return nil
-}
-
-func generateUUIDv7() uuid.UUID {
-	id, err := uuid.NewV7()
-	if err != nil {
-		logger.Log.Error("failed to generate UUID v7, falling back to v4", zap.Error(err))
-		return uuid.New()
-	}
-	return id
 }

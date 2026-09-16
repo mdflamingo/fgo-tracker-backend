@@ -16,6 +16,15 @@ import (
 	"go.uber.org/zap"
 )
 
+type DBStorage struct {
+	pool *pgxpool.Pool
+}
+
+func (d *DBStorage) Close() error {
+	d.pool.Close()
+	return nil
+}
+
 func NewDBStorage(dsn string) (*DBStorage, error) {
 	ctx := context.Background()
 

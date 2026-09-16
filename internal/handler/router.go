@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"net/http"
-
 	_ "github.com/mdflamingo/fgo-tracker-backend/api/swagger"
 
 	"github.com/go-chi/chi/v5"
@@ -18,7 +16,12 @@ func NewRouter(conf *config.Config, storage *pg.DBStorage) *chi.Mux {
 	r := chi.NewRouter()
 
 	taskService := service.NewTaskService(storage)
+	userService := service.NewUserService(storage)
+	projectService := service.NewProjectService(storage)
+
 	taskHandler := NewTaskHandler(taskService)
+	userHandler := NewUserHandler(userService)
+	projectHandler := NewProjectHandler(projectService)
 
 	r.Use(middleware.Recoverer)
 	r.Use(logger.RequestLogger)
@@ -31,22 +34,24 @@ func NewRouter(conf *config.Config, storage *pg.DBStorage) *chi.Mux {
 		}),
 	))
 
-	r.Group(func(r chi.Router) {
-		r.Post("/api/task", func(w http.ResponseWriter, r *http.Request) {
-			taskHandler.CreateTask(w, r)
+	r.Route("/api", func(r chi.Router) {
+		r.Route("/task", func(r chi.Router) {
+			r.Post("/", taskHandler.CreateTask)
+			r.Get("/list", taskHandler.GetList)
+			r.Get("/{id}", taskHandler.GetTask)
+			r.Put("/{id}", taskHandler.UpdateTask)
+			r.Delete("/{id}", taskHandler.DeleteTask)
 		})
-		r.Get("/api/task/list", func(w http.ResponseWriter, r *http.Request) {
-			taskHandler.GetList(w, r)
+
+		r.Route("/user", func(r chi.Router) {
+			r.Get("/list", userHandler.GetList)
 		})
-		r.Get("/api/task/{id}", func(w http.ResponseWriter, r *http.Request) {
-			taskHandler.GetTask(w, r)
+
+		r.Route("/project", func(r chi.Router) {
+			r.Get("/list", projectHandler.GetList)
+			r.Post("/", projectHandler.CreateProject)
 		})
-		r.Put("/api/task/{id}", func(w http.ResponseWriter, r *http.Request) {
-			taskHandler.UpdateTask(w, r)
-		})
-		r.Delete("/api/task/{id}", func(w http.ResponseWriter, r *http.Request) {
-			taskHandler.DeleteTask(w, r)
-		})
+
 	})
 
 	return r

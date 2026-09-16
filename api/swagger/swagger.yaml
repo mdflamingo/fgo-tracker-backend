@@ -1,6 +1,37 @@
 basePath: /
 definitions:
+  model.ProjectCreateRequest:
+    properties:
+      member_ids:
+        example:
+        - 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        items:
+          type: string
+        type: array
+      name:
+        example: Project name
+        type: string
+      viewer_ids:
+        example:
+        - 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        items:
+          type: string
+        type: array
+    type: object
+  model.ProjectCreateResponse:
+    properties:
+      id:
+        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        type: string
+    type: object
   model.ProjectDB:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  model.ProjectListResponse:
     properties:
       id:
         type: string
@@ -226,6 +257,55 @@ info:
   title: Task Tracker API
   version: 1.0.0
 paths:
+  /api/project:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new project
+      parameters:
+      - description: Project data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ProjectCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created project ID
+          schema:
+            $ref: '#/definitions/model.ProjectCreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ResponseError'
+      summary: Create new projects
+      tags:
+      - Projects
+  /api/project/list:
+    get:
+      description: Return all projects in system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tasks
+          schema:
+            items:
+              $ref: '#/definitions/model.ProjectListResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ResponseError'
+      summary: Get all projects
+      tags:
+      - Projects
   /api/task:
     post:
       consumes:
@@ -366,4 +446,23 @@ paths:
       summary: Get all tasks
       tags:
       - Tasks
+  /api/user/list:
+    get:
+      description: Return all users in system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users
+          schema:
+            items:
+              $ref: '#/definitions/model.UserDB'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ResponseError'
+      summary: Get all users
+      tags:
+      - Users
 swagger: "2.0"

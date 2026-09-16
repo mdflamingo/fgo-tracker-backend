@@ -105,10 +105,10 @@ type TaskUpdate struct {
 }
 
 type TaskUserCreate struct {
-	Id        uuid.UUID
-	UserId    uuid.UUID
-	ProjectId uuid.UUID
-	Role      TaskRole
+	Id     uuid.UUID
+	UserId uuid.UUID
+	TaskId uuid.UUID
+	Role   TaskRole
 }
 
 type TaskDB struct {
@@ -119,15 +119,4 @@ type TaskDB struct {
 	Priority    TaskPriority
 	ProjectId   uuid.UUID
 	Deadline    time.Time
-}
-
-type UserDB struct {
-	Id       uuid.UUID
-	Username string
-	Email    string
-}
-
-type ProjectDB struct {
-	Id   uuid.UUID
-	Name string
 }

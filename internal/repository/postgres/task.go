@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/mdflamingo/fgo-tracker-backend/internal/model"
 )
@@ -16,16 +15,16 @@ var (
 	ErrTaskNotFound = errors.New("task not found")
 )
 
-type DBStorage struct {
-	pool *pgxpool.Pool
-}
+// type DBStorage struct {
+// 	pool *pgxpool.Pool
+// }
 
-func (d *DBStorage) Close() error {
-	d.pool.Close()
-	return nil
-}
+// func (d *DBStorage) Close() error {
+// 	d.pool.Close()
+// 	return nil
+// }
 
-func (d *DBStorage) Create(task model.TaskCreate, userTaskList []model.TaskUserCreate) error {
+func (d *DBStorage) CreateTask(task model.TaskCreate, userTaskList []model.TaskUserCreate) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -79,7 +78,7 @@ func (d *DBStorage) Create(task model.TaskCreate, userTaskList []model.TaskUserC
 	return nil
 }
 
-func (d *DBStorage) GetOne(taskID uuid.UUID) (model.TaskResponse, error) {
+func (d *DBStorage) GetOneTask(taskID uuid.UUID) (model.TaskResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -196,7 +195,7 @@ func derefStr(s *string) string {
 	return ""
 }
 
-func (d *DBStorage) GetList() ([]model.TaskListResponse, error) {
+func (d *DBStorage) GetTaskList() ([]model.TaskListResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -226,7 +225,7 @@ func (d *DBStorage) GetList() ([]model.TaskListResponse, error) {
 	return tasksList, nil
 }
 
-func (d *DBStorage) Update(taskID uuid.UUID, task model.TaskUpdate, userTasks []model.TaskUserCreate) error {
+func (d *DBStorage) UpdateTask(taskID uuid.UUID, task model.TaskUpdate, userTasks []model.TaskUserCreate) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -289,7 +288,7 @@ func (d *DBStorage) Update(taskID uuid.UUID, task model.TaskUpdate, userTasks []
 	return nil
 }
 
-func (d *DBStorage) Delete(taskID uuid.UUID) error {
+func (d *DBStorage) DeleteTask(taskID uuid.UUID) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 

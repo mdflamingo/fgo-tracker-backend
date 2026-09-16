@@ -50,7 +50,7 @@ type TaskUpdateRequest struct {
 	Priority    TaskPriority `json:"priority" example:"medium" description:"Task priority" validate:"omitempty,oneof=low medium high critical"`
 	ProjectId   uuid.UUID    `json:"project_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" description:"Project id" validate:"required,uuid"`
 	Deadline    *time.Time   `json:"deadline" example:"2025-07-01T00:00:00Z" description:"Deadline date" validate:"omitempty,gt=0"`
-	CompletedAt *time.Time   `json:"completed_at" example:"2025-07-01T00:00:00Z" description:"Completed date" validate:"omitempty,gt=0"`
+	CompletedAt *time.Time   `json:"completed_at" example:"2025-07-01T00:00:00Z" description:"Completed date" validate:"omitempty"`
 	AssignedIds *[]uuid.UUID `json:"assigned_ids" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" validate:"omitempty,dive,uuid"`
 	ReviewerIds *[]uuid.UUID `json:"reviewer_ids" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" validate:"omitempty,dive,uuid"`
 }
@@ -79,6 +79,7 @@ type TaskListResponse struct {
 	Description string       `json:"description" example:"Some description"`
 	Status      TaskStatus   `json:"status" example:"backlog"`
 	Priority    TaskPriority `json:"priority" example:"medium"`
+	ProjectId   uuid.UUID    `json:"project_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba"`
 	ProjectName string       `json:"project_name"`
 }
 

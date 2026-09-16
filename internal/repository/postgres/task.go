@@ -200,7 +200,7 @@ func (d *DBStorage) GetTaskList() ([]model.TaskListResponse, error) {
 	defer cancel()
 
 	rows, err := d.pool.Query(ctx,
-		`SELECT t.id, t.name, t.description, t.status, t.priority, p.name
+		`SELECT t.id, t.name, t.description, t.status, t.priority, p.id, p.name
 			FROM task t
 			LEFT JOIN project p ON t.project_id = p.id
 			ORDER BY t.created_at DESC`)
@@ -213,7 +213,7 @@ func (d *DBStorage) GetTaskList() ([]model.TaskListResponse, error) {
 
 	for rows.Next() {
 		var task model.TaskListResponse
-		if err := rows.Scan(&task.Id, &task.Name, &task.Description, &task.Status, &task.Priority, &task.ProjectName); err != nil {
+		if err := rows.Scan(&task.Id, &task.Name, &task.Description, &task.Status, &task.Priority, &task.ProjectId, &task.ProjectName); err != nil {
 			return nil, fmt.Errorf("data scan error: %w", err)
 		}
 		tasksList = append(tasksList, task)

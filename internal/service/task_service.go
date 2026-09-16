@@ -63,22 +63,25 @@ func (s *TaskService) CreateTask(req model.TaskCreateRequest, creatorID uuid.UUI
 		Role:      model.TaskCreator,
 	})
 
-	if req.AssignedId != uuid.Nil {
-		createUserTasks = append(createUserTasks, model.TaskUserCreate{
-			Id:        generateUUIDv7(),
-			UserId:    req.AssignedId,
-			ProjectId: req.ProjectId,
-			Role:      model.TaskAssignee,
-		})
+	for _, assigneeID := range *req.AssignedIds {
+		if assigneeID != uuid.Nil {
+			createUserTasks = append(createUserTasks, model.TaskUserCreate{
+				Id:        generateUUIDv7(),
+				UserId:    assigneeID,
+				ProjectId: req.ProjectId,
+				Role:      model.TaskAssignee,
+			})
+		}
 	}
 
-	if req.ReviewerId != uuid.Nil {
+	for _, reviewerID := range *req.ReviewerIds {
 		createUserTasks = append(createUserTasks, model.TaskUserCreate{
 			Id:        generateUUIDv7(),
-			UserId:    req.ReviewerId,
+			UserId:    reviewerID,
 			ProjectId: req.ProjectId,
 			Role:      model.TaskReviewer,
 		})
+
 	}
 
 	if err := s.repo.Create(createTask, createUserTasks); err != nil {

@@ -262,9 +262,14 @@ const docTemplate = `{
                 "project_id"
             ],
             "properties": {
-                "assigned_id": {
-                    "type": "string",
-                    "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                "assigned_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                    ]
                 },
                 "deadline": {
                     "type": "string",
@@ -273,12 +278,12 @@ const docTemplate = `{
                 "description": {
                     "type": "string",
                     "maxLength": 1000,
-                    "example": "Some description"
+                    "example": "Task description"
                 },
                 "name": {
                     "type": "string",
                     "maxLength": 255,
-                    "example": "Update user table"
+                    "example": "Task name"
                 },
                 "priority": {
                     "enum": [
@@ -298,9 +303,14 @@ const docTemplate = `{
                     "type": "string",
                     "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
                 },
-                "reviewer_id": {
-                    "type": "string",
-                    "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                "reviewer_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                    ]
                 },
                 "status": {
                     "enum": [
@@ -463,7 +473,10 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                    ]
                 },
                 "completed_at": {
                     "type": "string",
@@ -505,7 +518,10 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "60601fee-2bf1-4721-ae6f-7636e79a0cba"
+                    ]
                 },
                 "status": {
                     "enum": [

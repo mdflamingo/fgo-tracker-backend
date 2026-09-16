@@ -16,18 +16,21 @@ definitions:
     type: object
   model.TaskCreateRequest:
     properties:
-      assigned_id:
-        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
-        type: string
+      assigned_ids:
+        example:
+        - 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        items:
+          type: string
+        type: array
       deadline:
         example: "2025-07-01T00:00:00Z"
         type: string
       description:
-        example: Some description
+        example: Task description
         maxLength: 1000
         type: string
       name:
-        example: Update user table
+        example: Task name
         maxLength: 255
         type: string
       priority:
@@ -42,9 +45,12 @@ definitions:
       project_id:
         example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
         type: string
-      reviewer_id:
-        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
-        type: string
+      reviewer_ids:
+        example:
+        - 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        items:
+          type: string
+        type: array
       status:
         allOf:
         - $ref: '#/definitions/model.TaskStatus'
@@ -151,6 +157,8 @@ definitions:
   model.TaskUpdateRequest:
     properties:
       assigned_ids:
+        example:
+        - 60601fee-2bf1-4721-ae6f-7636e79a0cba
         items:
           type: string
         type: array
@@ -181,6 +189,8 @@ definitions:
         example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
         type: string
       reviewer_ids:
+        example:
+        - 60601fee-2bf1-4721-ae6f-7636e79a0cba
         items:
           type: string
         type: array

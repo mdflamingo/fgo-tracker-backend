@@ -142,7 +142,7 @@ const docTemplate = `{
         },
         "/api/task/list": {
             "get": {
-                "description": "Return all tasks in system",
+                "description": "Return all tasks in system with optional filters",
                 "produces": [
                     "application/json"
                 ],
@@ -150,6 +150,84 @@ const docTemplate = `{
                     "Tasks"
                 ],
                 "summary": "Get all tasks",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "backlog",
+                            "in_progress",
+                            "review",
+                            "done"
+                        ],
+                        "type": "string",
+                        "description": "status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "low",
+                            "medium",
+                            "high",
+                            "critical"
+                        ],
+                        "type": "string",
+                        "description": "priority",
+                        "name": "priority",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "project",
+                        "name": "project_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "creator",
+                        "name": "creator_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "assignee",
+                        "name": "assigned_ids",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "reviewer",
+                        "name": "reviewer_ids",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Number of items to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of items to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Tasks",
@@ -158,6 +236,12 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/model.TaskListResponse"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request (invalid parameters)",
+                        "schema": {
+                            "$ref": "#/definitions/model.ResponseError"
                         }
                     },
                     "500": {
@@ -510,6 +594,10 @@ const docTemplate = `{
                         }
                     ],
                     "example": "medium"
+                },
+                "project_id": {
+                    "type": "string",
+                    "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
                 },
                 "project_name": {
                     "type": "string"

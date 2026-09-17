@@ -83,6 +83,18 @@ type TaskListResponse struct {
 	ProjectName string       `json:"project_name"`
 }
 
+type TaskFilter struct {
+	Name        string       `json:"name" validate:"omitempty,max=255"`
+	Status      TaskStatus   `json:"status" validate:"omitempty,oneof=backlog in_progress review done"`
+	Priority    TaskPriority `json:"priority" validate:"omitempty,oneof=low medium high critical"`
+	ProjectId   uuid.UUID    `json:"project_id" validate:"omitempty,uuid"`
+	CreatorId   uuid.UUID    `json:"creator_id" validate:"omitempty,uuid"`
+	AssignedIds []string     `json:"assigned_ids" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" validate:"omitempty,dive,uuid"`
+	ReviewerIds []string     `json:"reviewer_ids" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" validate:"omitempty,dive,uuid"`
+	Limit       int          `json:"limit" validate:"omitempty,gte=1"`
+	Offset      int          `json:"offset" validate:"omitempty,gte=0"`
+}
+
 // / DB models ///
 type TaskCreate struct {
 	Id          uuid.UUID

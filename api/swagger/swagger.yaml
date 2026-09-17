@@ -116,6 +116,9 @@ definitions:
         allOf:
         - $ref: '#/definitions/model.TaskPriority'
         example: medium
+      project_id:
+        example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        type: string
       project_name:
         type: string
       status:
@@ -429,7 +432,62 @@ paths:
       - Task
   /api/task/list:
     get:
-      description: Return all tasks in system
+      description: Return all tasks in system with optional filters
+      parameters:
+      - description: name
+        in: query
+        name: name
+        type: string
+      - description: status
+        enum:
+        - backlog
+        - in_progress
+        - review
+        - done
+        in: query
+        name: status
+        type: string
+      - description: priority
+        enum:
+        - low
+        - medium
+        - high
+        - critical
+        in: query
+        name: priority
+        type: string
+      - description: project
+        in: query
+        name: project_id
+        type: string
+      - description: creator
+        in: query
+        name: creator_id
+        type: string
+      - collectionFormat: csv
+        description: assignee
+        in: query
+        items:
+          type: string
+        name: assigned_ids
+        type: array
+      - collectionFormat: csv
+        description: reviewer
+        in: query
+        items:
+          type: string
+        name: reviewer_ids
+        type: array
+      - default: 50
+        description: Number of items to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
@@ -439,6 +497,10 @@ paths:
             items:
               $ref: '#/definitions/model.TaskListResponse'
             type: array
+        "400":
+          description: Bad Request (invalid parameters)
+          schema:
+            $ref: '#/definitions/model.ResponseError'
         "500":
           description: Internal Server Error
           schema:
